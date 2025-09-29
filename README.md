@@ -6,6 +6,8 @@ Ejecutar para levantar:
 - spring: ./gradlew bootRun
 - builds: ./gradlew build
 - formater; ./gradlew spotlessApply
+- hooks: ./scripts/install-hooks.sh
+
 
 
 Instalar:
