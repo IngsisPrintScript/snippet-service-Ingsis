@@ -38,4 +38,5 @@ out/
 
 ### Envs ###
 .env*
+*.env
 !.env.sample
