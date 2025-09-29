@@ -8,6 +8,8 @@ Ejecutar para levantar:
 - formater; ./gradlew spotlessApply
 - hooks: ./scripts/install-hooks.sh
 
+Checkear:
+- spotlessCheck: ./gradlew spotlessCheck
 
 
 Instalar:

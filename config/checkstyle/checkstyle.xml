@@ -12,7 +12,7 @@
     <module name="TreeWalker">
         <module name="Indentation">
             <property name="basicOffset" value="2"/>
-            <property name="tabWidth" value="2"/>
+            <property name="tabWidth" value="4"/>
         </module>
     </module>
 </module>

@@ -1,8 +1,11 @@
 package com.ingsis.snippet_service.snippet;
 
+import com.ingsis.snippet_service.snippetShare.SnippetShare;
 import com.ingsis.snippet_service.validationResult.ValidationResult;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -12,6 +15,8 @@ public class Snippet {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id = UUID.randomUUID();
 
+  @NotBlank private String snippetOwnerId;
+
   @NotBlank private String name;
 
   @NotBlank private String description;
@@ -19,6 +24,9 @@ public class Snippet {
   @NotBlank private String language;
 
   @NotBlank private String version;
+
+  @OneToMany(mappedBy = "snippet", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<SnippetShare> snippetShare = new ArrayList<>();
 
   @Column(columnDefinition = "TEXT")
   private String contentUrl;
@@ -63,6 +71,14 @@ public class Snippet {
     return validationResult;
   }
 
+  public String getSnippetOwnerId() {
+    return snippetOwnerId;
+  }
+
+  public List<SnippetShare> getSnippetShare() {
+    return snippetShare;
+  }
+
   public void setValidationResult(ValidationResult validationResult) {
     this.validationResult = validationResult;
   }
@@ -89,5 +105,13 @@ public class Snippet {
 
   public void setContent(String content) {
     this.contentUrl = content;
+  }
+
+  public void setSnippetOwnerId(String snippetOwnerId) {
+    this.snippetOwnerId = snippetOwnerId;
+  }
+
+  public void setSnippetShare(List<SnippetShare> snippetShare) {
+    this.snippetShare = snippetShare;
   }
 }
