@@ -26,7 +26,7 @@ public class Snippet {
   @NotBlank private String version;
 
   @OneToMany(mappedBy = "snippet", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<SnippetShare> snippetShare = new ArrayList<>();
+  private List<SnippetShare> snippetShare = List.of();
 
   @Column(columnDefinition = "TEXT")
   private String contentUrl;
@@ -41,6 +41,16 @@ public class Snippet {
     this.language = language;
     this.version = version;
     this.contentUrl = content;
+  }
+  public Snippet(String name, String description, String language, String version,
+                 String content, String ownerId,ValidationResult validationResult) {
+    this.name = name;
+    this.description = description;
+    this.language = language;
+    this.version = version;
+    this.contentUrl = content;
+    this.snippetOwnerId = ownerId;
+    this.validationResult = validationResult;
   }
 
   public UUID getId() {
@@ -77,41 +87,5 @@ public class Snippet {
 
   public List<SnippetShare> getSnippetShare() {
     return snippetShare;
-  }
-
-  public void setValidationResult(ValidationResult validationResult) {
-    this.validationResult = validationResult;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public void setLanguage(String language) {
-    this.language = language;
-  }
-
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public void setContent(String content) {
-    this.contentUrl = content;
-  }
-
-  public void setSnippetOwnerId(String snippetOwnerId) {
-    this.snippetOwnerId = snippetOwnerId;
-  }
-
-  public void setSnippetShare(List<SnippetShare> snippetShare) {
-    this.snippetShare = snippetShare;
   }
 }

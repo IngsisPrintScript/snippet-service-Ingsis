@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.UUID;
 
 @Entity
-public class SnippetShare {
+public class  SnippetShare {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -16,11 +16,17 @@ public class SnippetShare {
 
   @NotBlank private String sharedWithUserId;
 
-  private boolean canRead = true;
+  @NotBlank private boolean canRead = true;
 
-  public UUID getId() {
-    return id;
+  public SnippetShare() {}
+
+  public SnippetShare(Snippet snippet, String sharedWithUserId, boolean canRead) {
+    this.snippet = snippet;
+    this.sharedWithUserId = sharedWithUserId;
+    this.canRead = canRead;
   }
+
+  public UUID getId() {return id;}
 
   public void setId(UUID id) {
     this.id = id;
@@ -30,23 +36,12 @@ public class SnippetShare {
     return snippet;
   }
 
-  public void setSnippet(Snippet snippet) {
-    this.snippet = snippet;
-  }
-
   public String getSharedWithUserId() {
     return sharedWithUserId;
-  }
-
-  public void setSharedWithUserId(String sharedWithUserId) {
-    this.sharedWithUserId = sharedWithUserId;
   }
 
   public boolean isCanRead() {
     return canRead;
   }
 
-  public void setCanRead(boolean canRead) {
-    this.canRead = canRead;
-  }
 }

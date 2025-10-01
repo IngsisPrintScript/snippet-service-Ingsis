@@ -11,7 +11,7 @@ public class UserClientService {
   private final RestTemplate restTemplate;
   private final String authServiceUrl;
 
-  public UserClientService(@Value("${auth.service.url}") String authServiceUrl) {
+  public UserClientService(@Value("${AUTH0_AUDIENCE}") String authServiceUrl) {
     this.restTemplate = new RestTemplate();
     this.authServiceUrl = authServiceUrl;
   }
@@ -20,7 +20,7 @@ public class UserClientService {
     try {
       ResponseEntity<Boolean> response =
           restTemplate.getForEntity(
-              authServiceUrl + "/users/exists/{userId}", Boolean.class, userId);
+              authServiceUrl + "/api/users/exists/{userId}", Boolean.class, userId);
       return response.getBody() != null && response.getBody();
     } catch (Exception e) {
       return false;
