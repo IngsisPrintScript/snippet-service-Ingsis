@@ -5,6 +5,7 @@ plugins {
 	id 'jacoco'
 	id 'checkstyle'
 	id 'com.diffplug.spotless' version '6.25.0'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 group = 'com.ingsis'
@@ -28,7 +29,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	runtimeOnly 'org.postgresql:postgresql'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.azure:azure-storage-blob:12.27.0'
 	implementation 'com.azure:azure-identity:1.12.2'
 
@@ -36,6 +39,8 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
 }
 
 tasks.named('test') {
@@ -55,15 +60,15 @@ jacocoTestReport {
 	}
 }
 
-spotless {
-	java {
-		googleJavaFormat()
-		target 'src/**/*.java'
-		indentWithSpaces(4)
-	}
-}
-
-checkstyle {
-	toolVersion = '10.12.0'
-	configFile = file("config/checkstyle/checkstyle.xml") //Reemplazar por nuestras checkstyles
-}
+//spotless {
+//	java {
+////		googleJavaFormat()
+////		target 'src/**/*.java'
+////		indentWithSpaces(4)
+//	}
+//}
+//
+//checkstyle {
+////	toolVersion = '10.12.0'
+////	configFile = file("config/checkstyle/checkstyle.xml") //Reemplazar por nuestras checkstyles
+//}
