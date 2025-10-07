@@ -1,6 +1,10 @@
 package com.ingsis.snippetManager.ToMove.intermediate;
 
 import com.ingsis.snippetManager.ToMove.snippet.dto.TestDTO;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +13,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 public class TestSnippetsService {
@@ -41,6 +46,24 @@ public class TestSnippetsService {
     } catch (Exception e) {
       throw new RuntimeException(
           "Error fetching tests for snippet " + snippetId + ": " + e.getMessage(), e);
+    }
+  }
+
+  public void streamTestExecution(UUID snippetId, UUID testId, String userId, SseEmitter emitter) {
+    String url = String.format("%s/tests/run/stream?snippetId=%s&testId=%s&userId=%s",
+            testingServiceUrl, snippetId, testId, userId);
+
+    try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(new URL(url).openStream()))) {
+
+      String line;
+      while ((line = reader.readLine()) != null) {
+        emitter.send(SseEmitter.event().data(line));
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Error streaming test output", e);
+    } finally {
+      emitter.complete();
     }
   }
 }

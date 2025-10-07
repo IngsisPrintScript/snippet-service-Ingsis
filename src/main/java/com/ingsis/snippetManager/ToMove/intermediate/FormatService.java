@@ -34,4 +34,16 @@ public class FormatService {
     ResponseEntity<Snippet> response = restTemplate.postForEntity(url, null, Snippet.class);
     return response.getBody();
   }
+
+
+  public boolean updateFormatRules(String userId, FormatDTO rulesDTO) {
+    try {
+      String url = formatServiceUrl + "/rules?userId=" + userId;
+      ResponseEntity<Boolean> response =
+              restTemplate.postForEntity(url, rulesDTO, Boolean.class);
+      return Boolean.TRUE.equals(response.getBody());
+    } catch (Exception e) {
+      return false;
+    }
+  }
 }

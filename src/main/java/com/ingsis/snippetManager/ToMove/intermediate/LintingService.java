@@ -2,6 +2,7 @@ package com.ingsis.snippetManager.ToMove.intermediate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ingsis.snippetManager.ToMove.snippet.dto.FormatDTO;
 import com.ingsis.snippetManager.ToMove.snippet.dto.LintingDTO;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -20,16 +21,16 @@ import org.springframework.web.client.RestTemplate;
 public class LintingService {
 
   private final RestTemplate restTemplate;
-  private final String formatServiceUrl;
+  private final String lintingServiceUrl;
 
   public LintingService(@Value("http://localhost:8085/") String testingServiceUrl) {
     this.restTemplate = new RestTemplate();
-    this.formatServiceUrl = testingServiceUrl;
+    this.lintingServiceUrl = testingServiceUrl;
   }
 
   public boolean createLinting(String userId, LintingDTO lintingDTO) {
     try {
-      String url = formatServiceUrl + "/linting?userId=" + userId;
+      String url = lintingServiceUrl + "/linting?userId=" + userId;
       ResponseEntity<Boolean> response = restTemplate.postForEntity(url, lintingDTO, Boolean.class);
       return response.getBody() != null && response.getBody();
     } catch (Exception e) {
@@ -48,7 +49,7 @@ public class LintingService {
         sb.append(line).append("\n");
       }
       String code = sb.toString();
-      String url = formatServiceUrl + "/linting/" + lintingId;
+      String url = lintingServiceUrl + "/linting/" + lintingId;
       ResponseEntity<Boolean> response = restTemplate.postForEntity(url, code, Boolean.class);
       return response.getBody() != null && response.getBody();
     } catch (Exception e) {
@@ -70,7 +71,7 @@ public class LintingService {
       }
 
       String code = sb.toString();
-      String url = formatServiceUrl + "/linting/analyze";
+      String url = lintingServiceUrl + "/linting/analyze";
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
@@ -92,6 +93,17 @@ public class LintingService {
       return failed;
     } catch (Exception e) {
       throw new RuntimeException("Error evaluating snippet: " + e.getMessage(), e);
+    }
+  }
+
+  public boolean updateLintingRules(String userId, LintingDTO rulesDTO) {
+    try {
+      String url = lintingServiceUrl + "/rules?userId=" + userId;
+      ResponseEntity<Boolean> response =
+              restTemplate.postForEntity(url, rulesDTO, Boolean.class);
+      return Boolean.TRUE.equals(response.getBody());
+    } catch (Exception e) {
+      return false;
     }
   }
 }

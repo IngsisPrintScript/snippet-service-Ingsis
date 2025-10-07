@@ -1,5 +1,5 @@
 package com.ingsis.snippetManager.ToMove.snippet.dto;
 
-import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
 
-public record LintingDTO(MultipartFile file) {}
+public record LintingDTO(Map<String,Boolean> rules) {}

@@ -21,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/snippets")
@@ -241,6 +243,33 @@ public class SnippetController {
             getOwnerId(jwt), new Converter().convertTestToTestDTO(id, testDTO)));
   }
 
+  //User story 9
+  @GetMapping(value = "/{snippetId}/test/{testId}/run", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter streamTestOutput(
+          @PathVariable UUID snippetId,
+          @PathVariable UUID testId,
+          @AuthenticationPrincipal Jwt jwt) {
+
+    if (!validRole(jwt, Roles.INVESTIGATOR)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+    }
+
+    SseEmitter emitter = new SseEmitter();
+    CompletableFuture.runAsync(() -> {
+      try {
+        testSnippetsService.streamTestExecution(snippetId, testId, getOwnerId(jwt), emitter);
+      } catch (Exception e) {
+        try {
+          emitter.send(SseEmitter.event().data("Error: " + e.getMessage()));
+        } catch (IOException ignored) {}
+        emitter.complete();
+      }
+    });
+
+    return emitter;
+  }
+
+
   // User story 12
   @PostMapping("/format")
   public ResponseEntity<String> formatAllSnippets(@AuthenticationPrincipal Jwt jwt) {
@@ -298,5 +327,41 @@ public class SnippetController {
             "attachment; filename=\"" + snippet.getName() + "_formatted.txt\"")
         .contentType(MediaType.TEXT_PLAIN)
         .body(resource);
+  }
+
+  @PostMapping("/format/rules")
+  public ResponseEntity<?> setFormatRules(
+          @AuthenticationPrincipal Jwt jwt,
+          @RequestBody FormatDTO rulesDTO) {
+
+    if (!validRole(jwt, Roles.DEVELOPER)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    boolean success = formatService.updateFormatRules(getOwnerId(jwt), rulesDTO);
+
+    if (success) {
+      return ResponseEntity.ok("Format rules updated successfully.");
+    } else {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body("Error updating format rules.");
+    }
+  }
+
+  @PostMapping("/format/rules")
+  public ResponseEntity<?> setLintingRules(
+          @AuthenticationPrincipal Jwt jwt,
+          @RequestBody LintingDTO rulesDTO) {
+
+    if (!validRole(jwt, Roles.DEVELOPER)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+    boolean success = lintingService.updateLintingRules(getOwnerId(jwt), rulesDTO);
+    if (success) {
+      return ResponseEntity.ok("linting rules updated successfully.");
+    } else {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body("Error updating format rules.");
+    }
   }
 }
