@@ -1,6 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.ToMove.snippetShare.SnippetShare;
+import com.ingsis.snippetManager.snippetShare.SnippetShare;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
