@@ -27,7 +27,6 @@ public class StorageService {
         if (!containerClient.exists()) {
             containerClient.create();
         }
-
         BlobClient blobClient = containerClient.getBlobClient(blobName);
 
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
@@ -35,7 +34,6 @@ public class StorageService {
         } catch (IOException e) {
             throw new RuntimeException("Error uploading blob", e);
         }
-
         return blobClient.getBlobUrl();
     }
 
@@ -61,5 +59,13 @@ public class StorageService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         blobClient.download(outputStream);
         return outputStream.toByteArray();
+    }
+
+    public String getBlobNameFromUrl(String blobUrl) {
+        int lastSlash = blobUrl.lastIndexOf('/');
+        if (lastSlash == -1 || lastSlash + 1 >= blobUrl.length()) {
+            throw new IllegalArgumentException("Invalid blob URL: " + blobUrl);
+        }
+        return blobUrl.substring(lastSlash + 1);
     }
 }

@@ -1,5 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
+import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippetShare.SnippetShare;
 import jakarta.persistence.*;
@@ -44,6 +45,9 @@ public class Snippet {
 
     @Enumerated(EnumType.STRING)
     private SnippetLintStatus lintStatus = SnippetLintStatus.NOT_LINTED;
+
+    @Enumerated(EnumType.STRING)
+    private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_LINTED;
 
     public Snippet() {
     }
@@ -110,9 +114,18 @@ public class Snippet {
     public SnippetLintStatus getLintStatus() {
         return lintStatus;
     }
+    public SnippetFormatStatus getFormatStatus() {
+        return formatStatus;
+    }
+    public void setFormatStatus(SnippetFormatStatus formatStatus) {
+        this.formatStatus = formatStatus;
+    }
 
     public void setLintStatus(SnippetLintStatus lintStatus) {
         this.lintStatus = lintStatus;
+    }
+    public void setContentUrl(String contentUrl) {
+        this.contentUrl = contentUrl;
     }
 
 }

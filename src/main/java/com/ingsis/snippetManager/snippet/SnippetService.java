@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.ingsis.snippetManager.intermediate.LintingService;
+import com.ingsis.snippetManager.intermediate.lint.LintingService;
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.controllers.filters.Order;

@@ -1,4 +1,4 @@
-package com.ingsis.snippetManager.intermediate;
+package com.ingsis.snippetManager.intermediate.lint;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -10,9 +10,9 @@ import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.LintingDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.Result;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateLintingDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,12 +42,12 @@ public class LintingService {
         this.lintRequestProducer = lintRequestProducer;
     }
 
-    public ResponseEntity<?> createLinting(String userId, List<LintingDTO> lintingDTO) {
+    public ResponseEntity<?> createLinting(String userId, List<CreateDTO> createDTO) {
         try {
             logger.info("Creating linting rules for user {}", userId);
             String url = lintingServiceUrl + "/create?ownerId=" + userId;
             logger.info("Creating at url: {}", url);
-            return restTemplate.postForEntity(url, lintingDTO, Void.class);
+            return restTemplate.postForEntity(url, createDTO, Void.class);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -92,7 +92,7 @@ public class LintingService {
     }
 
 
-    public ResponseEntity<?> updateLintingRules(String userId, List<UpdateLintingDTO> rulesDTO) {
+    public ResponseEntity<?> updateLintingRules(String userId, List<UpdateDTO> rulesDTO) {
         logger.info("Updating linting rules for user {}", userId);
         String url = lintingServiceUrl + "/update?ownerId=" + userId;
         logger.info("Updating at url: {}", url);

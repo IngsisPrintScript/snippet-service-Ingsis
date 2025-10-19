@@ -1,16 +1,13 @@
-package com.ingsis.snippetManager.snippet.controllers.linter;
+package com.ingsis.snippetManager.snippet.controllers.format;
 
-
-import com.ingsis.snippetManager.intermediate.lint.LintingService;
-import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
+import com.ingsis.snippetManager.intermediate.format.FormatService;
+import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.Result;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetContentDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,81 +20,63 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/lint")
-public class SnippetLintingController {
+@RequestMapping("/format")
+public class SnippetFormatController {
 
-    private final LintingService lintingService;
+    private final FormatService formatService;
     private final SnippetController snippetController;
     private final SnippetRepo snippetRepo;
-    private static final Logger logger = LoggerFactory.getLogger(SnippetLintingController.class);
+    private static final Logger logger = LoggerFactory.getLogger(SnippetFormatController.class);
 
-    public SnippetLintingController(
-            LintingService lintingService,
+    public SnippetFormatController(
+            FormatService formatService,
             SnippetController snippetController,
             SnippetRepo snippetRepo) {
-        this.lintingService = lintingService;
+        this.formatService = formatService;
         this.snippetController = snippetController;
         this.snippetRepo = snippetRepo;
     }
 
-    @GetMapping("/validate/{snippetId}")
-    public ResponseEntity<SnippetLintStatus> validateSnippetLinting(
+    @GetMapping("/{snippetId}")
+    public ResponseEntity<SnippetFormatStatus> formatSnippet(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID snippetId
     ) {
         try {
             String ownerId = getString(jwt);
             logger.info("Validating linting for snippet {} by user {}", snippetId, ownerId);
-            SnippetContentDTO contentDTO = (snippetController.getSnippet(jwt, snippetId)).getBody();
+            Snippet contentDTO = (snippetController.getAllSnippetData(jwt, snippetId)).getBody();
             logger.info("SnippetDTO exist? {}", contentDTO != null);
             if (contentDTO == null) {
                 return ResponseEntity.badRequest().build();
             }
-            ;
-            SnippetLintStatus passes = lintingService.validLinting(contentDTO.content(), ownerId);
+            SnippetFormatStatus passes = formatService.formatContent(contentDTO, ownerId);
             return ResponseEntity.ok(passes);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(SnippetLintStatus.FAILED);
-        }
-    }
-
-    @GetMapping("/failed/{snippetId}")
-    public ResponseEntity<List<Result>> getFailedLinting(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID snippetId
-    ) {
-        try {
-            String ownerId = getString(jwt);
-            SnippetContentDTO snippetUrl = snippetController.getSnippet(jwt, snippetId).getBody();
-            if (snippetUrl == null) {
-                return ResponseEntity.badRequest().build();
-            }
-            return lintingService.failedLinting(snippetUrl.content(), ownerId);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+                    .body(SnippetFormatStatus.FAILED);
         }
     }
 
     @PutMapping("/update")
-    public ResponseEntity<?> updateLintingRules(
+    public ResponseEntity<?> updateFormatRules(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody List<UpdateDTO> rulesDTO
     ) {
         try {
             String ownerId = getString(jwt);
-            return lintingService.updateLintingRules(ownerId, rulesDTO);
+            return formatService.updateFormatRules(ownerId, rulesDTO);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error updating linting rules: " + e.getMessage());
+                    .body("Error updating format rules: " + e.getMessage());
         }
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createLintingRules(@AuthenticationPrincipal Jwt jwt, @RequestBody List<CreateDTO> rulesDTO) {
+    public ResponseEntity<?> createFormatRule(@AuthenticationPrincipal Jwt jwt, @RequestBody List<CreateDTO> rulesDTO) {
         try {
             String ownerId = getString(jwt);
-            return ResponseEntity.ok(lintingService.createLinting(ownerId, rulesDTO));
+            return ResponseEntity.ok(formatService.createLinting(ownerId, rulesDTO));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating linting rules: " + e.getMessage());
@@ -105,8 +84,8 @@ public class SnippetLintingController {
 
     }
 
-    @GetMapping("/snippets/lint-status")
-    public ResponseEntity<List<SnippetValidLintingDTO>> getLintStatuses(@AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/snippets/format-status")
+    public ResponseEntity<List<SnippetValidLintingDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
         List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
         List<SnippetValidLintingDTO> response = snippets.stream()
@@ -116,7 +95,7 @@ public class SnippetLintingController {
     }
 
     @GetMapping("/status/{userId}")
-    public List<Snippet> getLintStatus(@PathVariable String userId) {
+    public List<Snippet> getFormatStatus(@PathVariable String userId) {
         return snippetRepo.findAllAccessibleByUserId(userId);
     }
 

@@ -46,7 +46,7 @@ public class FormatResultConsumer extends RedisStreamConsumer<String> {
             logger.info("Received lint result for Snippet({}) - Status: {}", event.snippetId(), event.status());
 
             snippetRepository.findById(event.snippetId()).ifPresent(snippet -> {
-                snippet.setLintStatus(event.status());
+                snippet.setFormatStatus(event.status());
                 snippetRepository.save(snippet);
             });
 

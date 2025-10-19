@@ -1,6 +1,5 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.intermediate.LintingService;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 import com.ingsis.snippetManager.snippet.dto.Converter;
@@ -154,5 +153,15 @@ public class SnippetController {
                 snippet.getName(), snippet.getDescription(), snippet.getLanguage(),
                 snippetService.downloadSnippetContent(snippet.getId())));
 
+    }
+    @GetMapping("/snippet")
+    public ResponseEntity<Snippet> getAllSnippetData( @AuthenticationPrincipal Jwt jwt, @RequestParam UUID id) {
+        logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
+        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
+        logger.info("Snippet exist? {}", snippet != null);
+        if (snippet == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(snippet);
     }
 }
