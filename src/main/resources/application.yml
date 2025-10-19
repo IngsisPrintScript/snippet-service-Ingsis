@@ -32,8 +32,11 @@ redis:
   streams:
     lintRequest: ${REDIS_STREAM_REQUEST_LINT_KEY}
     lintResult: ${REDIS_STREAM_RESULT_LINT_KEY}
+    formatRequest: ${REDIS_STREAM_REQUEST_FORMAT_KEY}
+    formatResult: ${REDIS_STREAM_RESULT_FORMAT_KEY}
   groups:
     lint: ${REDIS_GROUP_LINT_KEY}
+    format: ${REDIS_GROUP_FORMAT_KEY}
 
 azure:
   storage:
