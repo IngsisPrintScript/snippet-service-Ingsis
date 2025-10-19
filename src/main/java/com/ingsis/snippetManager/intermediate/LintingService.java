@@ -1,18 +1,22 @@
 package com.ingsis.snippetManager.intermediate;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
+import com.ingsis.snippetManager.redis.lint.LintRequestProducer;
+import com.ingsis.snippetManager.redis.lint.dto.LintRequestEvent;
+import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
+import com.ingsis.snippetManager.snippet.Snippet;
+import com.ingsis.snippetManager.snippet.SnippetRepo;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.LintingDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.Result;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateLintingDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -20,91 +24,99 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class LintingService {
 
-  private final RestTemplate restTemplate;
-  private final String lintingServiceUrl;
+    private final RestTemplate restTemplate;
+    private final String lintingServiceUrl;
+    private final SnippetRepo snippetRepo;
+    private final StorageService storageService;
+    private final LintRequestProducer lintRequestProducer;
+    private static final Logger logger = LoggerFactory.getLogger(LintingService.class);
 
-  public LintingService(@Value("http://localhost:8085/") String testingServiceUrl) {
-    this.restTemplate = new RestTemplate();
-    this.lintingServiceUrl = testingServiceUrl;
-  }
-
-  public boolean createLinting(String userId, LintingDTO lintingDTO) {
-    try {
-      String url = lintingServiceUrl + "/linting?userId=" + userId;
-      ResponseEntity<Boolean> response = restTemplate.postForEntity(url, lintingDTO, Boolean.class);
-      return response.getBody() != null && response.getBody();
-    } catch (Exception e) {
-      return false;
+    public LintingService(@Value("http://localhost:8081/linting") String testingServiceUrl,
+                          SnippetRepo snippetRepo,
+                          StorageService storageService,
+                          LintRequestProducer lintRequestProducer) {
+        this.restTemplate = new RestTemplate();
+        this.lintingServiceUrl = testingServiceUrl;
+        this.snippetRepo = snippetRepo;
+        this.storageService = storageService;
+        this.lintRequestProducer = lintRequestProducer;
     }
-  }
 
-  public boolean validLinting(UUID snippetId, UUID lintingId) {
-    try {
-      URL content = new URL(snippetId.toString() + "/" + lintingId);
-      BufferedReader br =
-          new BufferedReader(new InputStreamReader(content.openStream(), StandardCharsets.UTF_8));
-      StringBuilder sb = new StringBuilder();
-      String line;
-      while ((line = br.readLine()) != null) {
-        sb.append(line).append("\n");
-      }
-      String code = sb.toString();
-      String url = lintingServiceUrl + "/linting/" + lintingId;
-      ResponseEntity<Boolean> response = restTemplate.postForEntity(url, code, Boolean.class);
-      return response.getBody() != null && response.getBody();
-    } catch (Exception e) {
-      return false;
+    public ResponseEntity<?> createLinting(String userId, List<LintingDTO> lintingDTO) {
+        try {
+            logger.info("Creating linting rules for user {}", userId);
+            String url = lintingServiceUrl + "/create?ownerId=" + userId;
+            logger.info("Creating at url: {}", url);
+            return restTemplate.postForEntity(url, lintingDTO, Void.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
-  }
 
-//  public List<String> evaluate(UUID snippetId, UUID lintingId) {
-//    try {
-////      URL content = new URL(contentUrl);
-////      StringBuilder sb = new StringBuilder();
-////
-////      try (BufferedReader br =
-////                   new BufferedReader(new InputStreamReader(content.openStream(), StandardCharsets.UTF_8))) {
-////        String line;
-////        while ((line = br.readLine()) != null) {
-////          sb.append(line).append("\n");
-////        }
-////      }
-//
-////      String code = sb.toString();
-////      String url = lintingServiceUrl + "/linting/analyze";
-//
-//      HttpHeaders headers = new HttpHeaders();
-//      headers.setContentType(MediaType.APPLICATION_JSON);
-//
-//      Map<String, String> requestBody = Map.of("code", code);
-//      HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
-//
-//      ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-//
-//      ObjectMapper mapper = new ObjectMapper();
-//      JsonNode jsonNode = mapper.readTree(response.getBody());
-//
-//      List<String> failed = new ArrayList<>();
-//      if (jsonNode.has("errors")) {
-//        for (JsonNode err : jsonNode.get("errors")) {
-//          failed.add(err.asText());
-//        }
-//      }
-//      return failed;
-//    } catch (Exception e) {
-//      throw new RuntimeException("Error evaluating snippet: " + e.getMessage(), e);
-//    }
-//  }
 
-  public boolean updateLintingRules(String userId, LintingDTO rulesDTO) {
-    try {
-      String url = lintingServiceUrl + "/rules?userId=" + userId;
-      ResponseEntity<Boolean> response =
-              restTemplate.postForEntity(url, rulesDTO, Boolean.class);
-      return Boolean.TRUE.equals(response.getBody());
-    } catch (Exception e) {
-      return false;
+    public SnippetLintStatus validLinting(String content, String ownerId) {
+        try {
+            logger.info("Evaluating snippet for user {}", ownerId);
+            EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
+            logger.info("Created the request: {}", request);
+            String url = lintingServiceUrl + "/evaluate";
+            logger.info("Evaluating at url: {}", url);
+            ResponseEntity<SnippetLintStatus> response =
+                    restTemplate.postForEntity(url, request, SnippetLintStatus.class);
+            if (response.getBody() == null) {
+                return SnippetLintStatus.FAILED;
+            }
+            return response.getBody().equals(SnippetLintStatus.PASSED) ? SnippetLintStatus.PASSED : SnippetLintStatus.FAILED;
+        } catch (Exception e) {
+            return SnippetLintStatus.FAILED;
+        }
     }
-  }
 
+    public ResponseEntity<List<Result>> failedLinting(String content, String ownerId) {
+        try {
+            logger.info("Evaluating snippet for user {}", ownerId);
+            EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
+            logger.info("Created the request: {}", request);
+            String url = lintingServiceUrl + "/evaluate/pass";
+            logger.info("Evaluating at url: {}", url);
+            return restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(request),
+                    new ParameterizedTypeReference<List<Result>>() {
+                    }
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+
+    public ResponseEntity<?> updateLintingRules(String userId, List<UpdateLintingDTO> rulesDTO) {
+        logger.info("Updating linting rules for user {}", userId);
+        String url = lintingServiceUrl + "/update?ownerId=" + userId;
+        logger.info("Updating at url: {}", url);
+        restTemplate.put(url, rulesDTO);
+        reLintAllSnippets(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    public void reLintAllSnippets(String userId) {
+        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        logger.info("Linting {} snippets for user {}", snippets.size(), userId);
+        for (Snippet snippet : snippets) {
+            snippet.setLintStatus(SnippetLintStatus.PENDING);
+            logger.info("Linting snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
+            byte[] contentBytes = storageService.download(snippet.getContentUrl());
+            logger.info("Downloaded content for snippet {} from {}", snippet.getId(), snippet.getContentUrl());
+            String content = new String(contentBytes, StandardCharsets.UTF_8);
+            LintRequestEvent event = new LintRequestEvent(
+                    userId,
+                    snippet.getId(),
+                    snippet.getLanguage(),
+                    content
+            );
+            lintRequestProducer.publish(event);
+        }
+    }
 }

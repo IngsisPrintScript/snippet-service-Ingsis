@@ -1,14 +1,14 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.intermediate.userRoles.Roles;
+import com.ingsis.snippetManager.intermediate.LintingService;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import com.ingsis.snippetManager.intermediate.UserAuthorizationService;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetContentDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
-import org.jetbrains.annotations.Nullable;
-import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -25,6 +25,8 @@ public class SnippetController {
 
     private final SnippetService snippetService;
     private final UserAuthorizationService userAuthorizationService;
+    private static final Logger logger = LoggerFactory.getLogger(SnippetController.class);
+
     public SnippetController(
             SnippetService snippetService,
             UserAuthorizationService userAuthorizationService) {
@@ -32,17 +34,10 @@ public class SnippetController {
         this.userAuthorizationService = userAuthorizationService;
     }
 
-    private boolean validRole(Jwt jwt, Roles role) {
-        return !userAuthorizationService.validRole(jwt.getClaim("sub"), role);
-    }
-
     // User Story 1
     @PostMapping("/create/file")
     public ResponseEntity<?> createSnippetFromFile(
             @ModelAttribute RequestFileDTO fileDTO, @AuthenticationPrincipal Jwt jwt) throws IOException {
-        if (validRole(jwt, Roles.DEVELOPER)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         Snippet snippet = getSnippet(fileDTO);
         ValidationResult saved = snippetService.createSnippet(snippet, getOwnerId(jwt));
 
@@ -66,9 +61,6 @@ public class SnippetController {
     @PostMapping("/create/text")
     public ResponseEntity<?> createSnippet(
             @RequestBody RequestSnippetDTO snippet, @AuthenticationPrincipal Jwt jwt) {
-        if (validRole(jwt, Roles.DEVELOPER)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         String contentUrl = snippetService.uploadSnippetContent(
                 "snippets", "code", snippet.content());
 
@@ -97,9 +89,6 @@ public class SnippetController {
             @ModelAttribute RequestFileDTO fileDTO,
             @AuthenticationPrincipal Jwt jwt) {
         try {
-            if (validRole(jwt, Roles.DEVELOPER)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
             Snippet snippet = getSnippet(fileDTO);
             ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
             if (!result.isValid()) {
@@ -121,9 +110,6 @@ public class SnippetController {
             @PathVariable UUID id,
             @RequestBody RequestSnippetDTO updatedSnippet,
             @AuthenticationPrincipal Jwt jwt) {
-        if (validRole(jwt, Roles.DEVELOPER)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         String contentUrl = snippetService.uploadSnippetContent(
                 "snippets", "code", updatedSnippet.content());
         ValidationResult result =
@@ -144,14 +130,11 @@ public class SnippetController {
     public ResponseEntity<?> getSnippets(
             @AuthenticationPrincipal Jwt jwt, @RequestBody SnippetFilterDTO filterDTO) {
         try {
-            if (!validRole(jwt, Roles.SNIPPETS_OWNER)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
             List<Snippet> snippets =
                     filterDTO == null
                             ? snippetService.getAllSnippetsByOwner(getOwnerId(jwt))
                             : snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO);
-            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO));
+            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error getting the snippets: " + e.getMessage());
         }
@@ -159,18 +142,17 @@ public class SnippetController {
 
     //User story 5
     @GetMapping("/{id}")
-    public ResponseEntity<?> getSnippet(
+    public ResponseEntity<SnippetContentDTO> getSnippet(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        try {
-            if (!validRole(jwt, Roles.SNIPPETS_ADMIN)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-            Snippet snippet = snippetService.getSnippetById(id);
-            return  ResponseEntity.ok(new SnippetContentDTO(
-                    snippet.getName(),snippet.getDescription(),snippet.getLanguage(),
-                    snippetService.downloadSnippetContent(snippet.getId())));
-        }catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error getting the snippet: " + e.getMessage());
+        logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
+        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
+        logger.info("Snippet exist? {}", snippet != null);
+        if (snippet == null) {
+            return ResponseEntity.badRequest().build();
         }
+        return ResponseEntity.ok(new SnippetContentDTO(
+                snippet.getName(), snippet.getDescription(), snippet.getLanguage(),
+                snippetService.downloadSnippetContent(snippet.getId())));
+
     }
 }
