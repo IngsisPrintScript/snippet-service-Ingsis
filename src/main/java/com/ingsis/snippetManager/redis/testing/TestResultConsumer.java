@@ -28,8 +28,8 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public TestResultConsumer(
-            @Value("${redis.streams.lintResult}") String streamName,
-            @Value("${redis.groups.lint}") String groupName,
+            @Value("${redis.streams.testResult}") String streamName,
+            @Value("${redis.groups.test}") String groupName,
             RedisTemplate<String, String> redisTemplate,
             ObjectMapper objectMapper,
             SnippetRepo snippetRepository
@@ -43,10 +43,10 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
     public void onMessage(@NotNull ObjectRecord<String, String> record) {
         try {
             TestResultEvent event = objectMapper.readValue(record.getValue(), TestResultEvent.class);
-            logger.info("Received lint result for Snippet({}) - Status: {}", event.snippetId(), event.status());
+            logger.info("Received Test result for Snippet({}) - Status: {}", event.snippetId(), event.status());
 
             snippetRepository.findById(event.snippetId()).ifPresent(snippet -> {
-                snippet.setLintStatus(event.status());
+                snippet.setTestStatus(event.status());
                 snippetRepository.save(snippet);
             });
 

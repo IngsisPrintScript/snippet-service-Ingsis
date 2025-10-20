@@ -91,7 +91,7 @@ public class SnippetController {
         try {
             Snippet snippet = getSnippet(fileDTO);
             ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
-            List<TestReturnDTO> testing = testingService.runAllTestsForSnippet(getOwnerId(jwt), id, snippet.getContentUrl());
+            testingService.runAllTestsForSnippet(getOwnerId(jwt), id, snippet.getContentUrl());
             if (!result.isValid()) {
                 String errorMsg =
                         String.format(
@@ -99,7 +99,7 @@ public class SnippetController {
                                 result.getMessage(), result.getLine(), result.getColumn());
                 return ResponseEntity.unprocessableEntity().body(errorMsg);
             }
-            return ResponseEntity.ok(testing);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error processing file: " + e.getMessage());
         }
@@ -116,7 +116,7 @@ public class SnippetController {
         ValidationResult result =
                 snippetService.updateSnippet(
                         id, new Converter().convertToSnippet(updatedSnippet, contentUrl), getOwnerId(jwt));
-        List<TestReturnDTO> testing = testingService.runAllTestsForSnippet(getOwnerId(jwt), id, updatedSnippet.content());
+        testingService.runAllTestsForSnippet(getOwnerId(jwt), id, updatedSnippet.content());
         if (!result.isValid()) {
             String errorMsg =
                     String.format(
@@ -124,7 +124,7 @@ public class SnippetController {
                             result.getMessage(), result.getLine(), result.getColumn());
             return ResponseEntity.unprocessableEntity().body(errorMsg);
         }
-        return ResponseEntity.ok(testing);
+        return ResponseEntity.ok(result);
     }
 
     // User story 5

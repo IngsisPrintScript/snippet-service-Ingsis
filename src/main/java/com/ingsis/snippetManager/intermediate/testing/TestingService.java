@@ -60,19 +60,16 @@ public class TestingService {
         return ResponseEntity.ok().build();
     }
 
-    public List<TestReturnDTO> runAllTestsForSnippet(String userId, UUID snippetId, String snippetContent) {
+    public void runAllTestsForSnippet(String userId, UUID snippetId, String snippetContent) {
         try {
             logger.info("Running all tests for snippet {}", snippetId);
-            List<TestReturnDTO> testReturnDTOS = new ArrayList<>();
             Snippet snippet = snippetRepo.findSnippetByIdAndSnippetOwnerId(snippetId,userId);
             List<UUID> testsId = snippet.getTestId();
             for (UUID test : testsId) {
                 TestToRunDTO dto = new TestToRunDTO(test, snippetContent, snippet.getLanguage());
-                TestRunResultDTO result = runTestCase(userId, dto, snippetId);
-                logger.info("Test result: {}", result.status().equals(SnippetTestStatus.PASSED) ? "PASSED" : "FAILED");
-                testReturnDTOS.add(new TestReturnDTO(dto.testCaseId(),result.status(),result.outputs()));
+                runTestCase(userId, dto, snippetId);
+                logger.info("Test {} sent", dto.testCaseId());
             }
-            return testReturnDTOS;
         } catch (Exception e) {
             logger.error("Error running tests automatically for snippet {}: {}", snippetId, e.getMessage());
             throw new RuntimeException(e);
@@ -91,5 +88,19 @@ public class TestingService {
                 content
         );
         testRequestProducer.publish(event);
+    }
+
+    public TestReturnDTO getTestStatus(UUID snippetId, UUID testId) {
+        try {
+            Snippet snippet = snippetRepo.findById(snippetId)
+                    .orElseThrow(() -> new RuntimeException("Snippet not found: " + snippetId));
+            List<String> testRepo = restTemplate.getForEntity();
+            SnippetTestStatus status = snippet.getTestStatus();
+            List<String> outputs = snippet.getTestOutputs(testId);
+            return new TestReturnDTO(testId, status, outputs);
+        } catch (Exception e) {
+            logger.error("Error fetching test status for test {}: {}", testId, e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }

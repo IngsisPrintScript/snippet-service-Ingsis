@@ -133,4 +133,11 @@ public class Snippet {
         this.contentUrl = contentUrl;
     }
 
+    public SnippetTestStatus getTestStatus() {
+        return testStatus;
+    }
+
+    public void setTestStatus(SnippetTestStatus testStatus) {
+        this.testStatus = testStatus;
+    }
 }
