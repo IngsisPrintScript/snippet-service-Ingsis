@@ -1,11 +1,10 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
+import com.ingsis.snippetManager.intermediate.testing.TestingService;
+import com.ingsis.snippetManager.redis.testing.dto.TestReturnDTO;
+import com.ingsis.snippetManager.snippet.dto.snippetDTO.*;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import com.ingsis.snippetManager.intermediate.UserAuthorizationService;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetContentDTO;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -24,13 +23,15 @@ public class SnippetController {
 
     private final SnippetService snippetService;
     private final UserAuthorizationService userAuthorizationService;
+    private final TestingService testingService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetController.class);
 
     public SnippetController(
             SnippetService snippetService,
-            UserAuthorizationService userAuthorizationService) {
+            UserAuthorizationService userAuthorizationService,TestingService testingService) {
         this.snippetService = snippetService;
         this.userAuthorizationService = userAuthorizationService;
+        this.testingService = testingService;
     }
 
     // User Story 1
@@ -90,6 +91,7 @@ public class SnippetController {
         try {
             Snippet snippet = getSnippet(fileDTO);
             ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
+            List<TestReturnDTO> testing = testingService.runAllTestsForSnippet(getOwnerId(jwt), id, snippet.getContentUrl());
             if (!result.isValid()) {
                 String errorMsg =
                         String.format(
@@ -97,7 +99,7 @@ public class SnippetController {
                                 result.getMessage(), result.getLine(), result.getColumn());
                 return ResponseEntity.unprocessableEntity().body(errorMsg);
             }
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(testing);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error processing file: " + e.getMessage());
         }
@@ -114,6 +116,7 @@ public class SnippetController {
         ValidationResult result =
                 snippetService.updateSnippet(
                         id, new Converter().convertToSnippet(updatedSnippet, contentUrl), getOwnerId(jwt));
+        List<TestReturnDTO> testing = testingService.runAllTestsForSnippet(getOwnerId(jwt), id, updatedSnippet.content());
         if (!result.isValid()) {
             String errorMsg =
                     String.format(
@@ -121,7 +124,7 @@ public class SnippetController {
                             result.getMessage(), result.getLine(), result.getColumn());
             return ResponseEntity.unprocessableEntity().body(errorMsg);
         }
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(testing);
     }
 
     // User story 5

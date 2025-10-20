@@ -2,6 +2,7 @@ package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
+import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
 import com.ingsis.snippetManager.snippetShare.SnippetShare;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -38,6 +39,7 @@ public class Snippet {
     @Column(columnDefinition = "TEXT")
     private String contentUrl;
 
+
     @ElementCollection
     @CollectionTable(name = "snippet_tests", joinColumns = @JoinColumn(name = "snippet_id"))
     @Column(name = "test_id")
@@ -48,6 +50,9 @@ public class Snippet {
 
     @Enumerated(EnumType.STRING)
     private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_LINTED;
+
+    @Enumerated(EnumType.STRING)
+    private SnippetTestStatus testStatus;
 
     public Snippet() {
     }

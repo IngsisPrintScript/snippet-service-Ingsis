@@ -54,4 +54,6 @@ public interface SnippetRepo extends JpaRepository<Snippet, UUID> {
 
     Optional<Snippet> findByIdAndSnippetOwnerId(
             @Param("id") UUID id, @Param("ownerId") String ownerId);
+
+    Snippet findSnippetByIdAndSnippetOwnerId(UUID id, String snippetOwnerId);
 }
