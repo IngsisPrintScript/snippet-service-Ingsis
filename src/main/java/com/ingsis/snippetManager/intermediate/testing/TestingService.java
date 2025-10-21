@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -38,7 +39,7 @@ public class TestingService {
         this.testRequestProducer = testRequestProducer;
     }
 
-    public ResponseEntity<GetTestDTO> createTest(String userId, List<CreateTestDTO> createDTO) {
+    public ResponseEntity<GetTestDTO> createTest(String userId, CreateTestDTO createDTO) {
         try {
             logger.info("Creating linting rules for user {}", userId);
             String url = testingServiceUrl + "/create?userId=" + userId;
@@ -49,21 +50,21 @@ public class TestingService {
         }
     }
 
-    public ResponseEntity<?> updateTest(String userId, List<UpdateTestDTO> rulesDTO) {
+    public ResponseEntity<?> updateTest(String userId, UpdateTestDTO rulesDTO) {
         logger.info("Updating linting rules for user {}", userId);
-        String url = testingServiceUrl + "/update?ownerId=" + userId;
+        String url = testingServiceUrl + "/update?userId=" + userId;
         logger.info("Updating at url: {}", url);
         restTemplate.put(url, rulesDTO);
         return ResponseEntity.ok().build();
     }
 
-    public void runAllTestsForSnippet(String userId, UUID snippetId, String snippetContent) {
+    public void runAllTestsForSnippet(String userId, UUID snippetId) {
         try {
             logger.info("Running all tests for snippet {}", snippetId);
             Snippet snippet = snippetRepo.findSnippetByIdAndSnippetOwnerId(snippetId,userId);
             List<UUID> testsId = snippet.getTestId();
             for (UUID test : testsId) {
-                TestToRunDTO dto = new TestToRunDTO(test, snippetContent, snippet.getLanguage());
+                TestToRunDTO dto = new TestToRunDTO(test);
                 runTestCase(userId, dto, snippetId);
                 logger.info("Test {} sent", dto.testCaseId());
             }
@@ -75,24 +76,26 @@ public class TestingService {
 
     public void runTestCase(String userId, TestToRunDTO dto, UUID snippetId) {
         logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
-        byte[] contentBytes = storageService.download(dto.content());
-        logger.info("Downloaded content for snippet {} from {}", snippetId, dto.content());
+        Snippet snippet = snippetRepo.findByIdAndSnippetOwnerId(snippetId,userId).orElseThrow(NoSuchElementException::new);
+        byte[] contentBytes = storageService.download(snippet.getContentUrl());
+        logger.info("Downloaded content for snippet {} from {}", snippetId, snippet.getContentUrl());
         String content = new String(contentBytes, StandardCharsets.UTF_8);
         TestRequestEvent event = new TestRequestEvent(
                 userId,
                 snippetId,
-                dto.language(),
+                snippet.getLanguage(),
                 content
         );
         testRequestProducer.publish(event);
     }
 
-    public ResponseEntity<TestStatus> runParticularTest(String userId,TestToRunDTO dto){
+    public void runParticularTest(String userId, TestToRunDTO dto, UUID snippetId) {
         logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
-        byte[] contentBytes = storageService.download(dto.content());
+        Snippet snippet = snippetRepo.findByIdAndSnippetOwnerId(snippetId,userId).orElseThrow(NoSuchElementException::new);
+        byte[] contentBytes = storageService.download(snippet.getContentUrl());
         String content = new String(contentBytes, StandardCharsets.UTF_8);
         String url = testingServiceUrl + "/run?userId=" + userId;
         logger.info("Url: {}",url);
-        return ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestStatus.class).getBody());
+        ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestStatus.class).getBody());
     }
 }

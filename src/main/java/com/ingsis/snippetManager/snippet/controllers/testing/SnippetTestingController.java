@@ -34,7 +34,7 @@ public class SnippetTestingController {
     @PostMapping("/create")
     public ResponseEntity<GetTestDTO> createTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody List<CreateTestDTO> createDTO
+            @RequestBody CreateTestDTO createDTO
     ) {
         String userId = getOwnerId(jwt);
         return testingService.createTest(userId, createDTO);
@@ -43,7 +43,7 @@ public class SnippetTestingController {
     @PutMapping("/update")
     public ResponseEntity<?> updateTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody List<UpdateTestDTO> updateDTO
+            @RequestBody UpdateTestDTO updateDTO
     ) {
         String userId = getOwnerId(jwt);
         return testingService.updateTest(userId, updateDTO);
@@ -56,7 +56,7 @@ public class SnippetTestingController {
             @RequestBody TestToRunDTO testToRunDTO
     ) {
         String userId = getOwnerId(jwt);
-        testingService.runTestCase(userId, testToRunDTO, snippetId);
+        testingService.runParticularTest(userId, testToRunDTO,snippetId);
         return ResponseEntity.accepted().build();
     }
 

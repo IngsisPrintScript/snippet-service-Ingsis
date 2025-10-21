@@ -91,7 +91,7 @@ public class SnippetController {
         try {
             Snippet snippet = getSnippet(fileDTO);
             ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
-            testingService.runAllTestsForSnippet(getOwnerId(jwt), id, snippet.getContentUrl());
+            testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
             if (!result.isValid()) {
                 String errorMsg =
                         String.format(
@@ -116,7 +116,7 @@ public class SnippetController {
         ValidationResult result =
                 snippetService.updateSnippet(
                         id, new Converter().convertToSnippet(updatedSnippet, contentUrl), getOwnerId(jwt));
-        testingService.runAllTestsForSnippet(getOwnerId(jwt), id, updatedSnippet.content());
+        testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
         if (!result.isValid()) {
             String errorMsg =
                     String.format(
