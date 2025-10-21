@@ -7,9 +7,7 @@ import com.ingsis.snippetManager.snippetShare.SnippetShare;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 public class Snippet {
@@ -45,14 +43,15 @@ public class Snippet {
     @Column(name = "test_id")
     private List<UUID> testId = new ArrayList<>();
 
+    @OneToMany(mappedBy = "snippet", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TestStatus> testStatusList = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     private SnippetLintStatus lintStatus = SnippetLintStatus.NOT_LINTED;
 
     @Enumerated(EnumType.STRING)
     private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_LINTED;
 
-    @Enumerated(EnumType.STRING)
-    private SnippetTestStatus testStatus;
 
     public Snippet() {
     }
@@ -133,11 +132,11 @@ public class Snippet {
         this.contentUrl = contentUrl;
     }
 
-    public SnippetTestStatus getTestStatus() {
-        return testStatus;
+    public List<TestStatus> getTestStatusList() {
+        return testStatusList;
     }
 
-    public void setTestStatus(SnippetTestStatus testStatus) {
-        this.testStatus = testStatus;
+    public void setTestStatusList(List<TestStatus> testStatusList) {
+        this.testStatusList = testStatusList;
     }
 }

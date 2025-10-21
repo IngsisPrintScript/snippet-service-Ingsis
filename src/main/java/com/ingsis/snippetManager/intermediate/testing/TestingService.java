@@ -1,13 +1,11 @@
 package com.ingsis.snippetManager.intermediate.testing;
 
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
-import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.redis.testing.TestRequestProducer;
-import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
 import com.ingsis.snippetManager.redis.testing.dto.TestRequestEvent;
-import com.ingsis.snippetManager.redis.testing.dto.TestReturnDTO;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
+import com.ingsis.snippetManager.snippet.TestStatus;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -90,17 +87,12 @@ public class TestingService {
         testRequestProducer.publish(event);
     }
 
-    public TestReturnDTO getTestStatus(UUID snippetId, UUID testId) {
-        try {
-            Snippet snippet = snippetRepo.findById(snippetId)
-                    .orElseThrow(() -> new RuntimeException("Snippet not found: " + snippetId));
-            List<String> testRepo = restTemplate.getForEntity();
-            SnippetTestStatus status = snippet.getTestStatus();
-            List<String> outputs = snippet.getTestOutputs(testId);
-            return new TestReturnDTO(testId, status, outputs);
-        } catch (Exception e) {
-            logger.error("Error fetching test status for test {}: {}", testId, e.getMessage());
-            throw new RuntimeException(e);
-        }
+    public ResponseEntity<TestStatus> runParticularTest(String userId,TestToRunDTO dto){
+        logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
+        byte[] contentBytes = storageService.download(dto.content());
+        String content = new String(contentBytes, StandardCharsets.UTF_8);
+        String url = testingServiceUrl + "/run?userId=" + userId;
+        logger.info("Url: {}",url);
+        return ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestStatus.class).getBody());
     }
 }

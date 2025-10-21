@@ -2,7 +2,9 @@ package com.ingsis.snippetManager.redis.testing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ingsis.snippetManager.redis.testing.dto.TestResultEvent;
+import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
+import com.ingsis.snippetManager.snippet.TestStatus;
 import jakarta.annotation.PreDestroy;
 import org.austral.ingsis.redis.RedisStreamConsumer;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.stream.StreamReceiver;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,18 +44,40 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
 
     @Override
     public void onMessage(@NotNull ObjectRecord<String, String> record) {
-        try {
-            TestResultEvent event = objectMapper.readValue(record.getValue(), TestResultEvent.class);
-            logger.info("Received Test result for Snippet({}) - Status: {}", event.snippetId(), event.status());
+        executor.submit(() -> {
+            try {
+                TestResultEvent event = objectMapper.readValue(record.getValue(), TestResultEvent.class);
+                logger.info("Received Test result for Snippet({}) - Test({}) - Status: {}",
+                        event.snippetId(), event.testId(), event.status());
 
-            snippetRepository.findById(event.snippetId()).ifPresent(snippet -> {
-                snippet.setTestStatus(event.status());
+                Optional<Snippet> snippetOpt = snippetRepository.findById(event.snippetId());
+                if (snippetOpt.isEmpty()) {
+                    logger.warn("Snippet {} not found for test result", event.snippetId());
+                    return;
+                }
+
+                Snippet snippet = snippetOpt.get();
+                Optional<TestStatus> existing = snippet.getTestStatusList().stream()
+                        .filter(t -> t.getTestId().equals(event.testId()))
+                        .findFirst();
+
+                if (existing.isPresent()) {
+                    existing.get().setTestStatus(event.status());
+                } else {
+                    TestStatus newStatus = new TestStatus();
+                    newStatus.setTestId(event.testId());
+                    newStatus.setTestStatus(event.status());
+                    snippet.getTestStatusList().add(newStatus);
+                }
+
                 snippetRepository.save(snippet);
-            });
+                logger.info("Updated test ({}) status for Snippet({}) -> {}",
+                        event.testId(), event.snippetId(), event.status());
 
-        } catch (Exception e) {
-            logger.error("Error processing lint result: {}", e.getMessage());
-        }
+            } catch (Exception e) {
+                logger.error("Error processing test result: {}", e.getMessage(), e);
+            }
+        });
     }
 
     @Override

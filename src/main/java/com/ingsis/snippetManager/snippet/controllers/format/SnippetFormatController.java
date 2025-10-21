@@ -5,6 +5,7 @@ import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
+import com.ingsis.snippetManager.snippet.dto.format.SnippetValidFormatDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
@@ -85,11 +86,11 @@ public class SnippetFormatController {
     }
 
     @GetMapping("/snippets/format-status")
-    public ResponseEntity<List<SnippetValidLintingDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<SnippetValidFormatDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
         List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
-        List<SnippetValidLintingDTO> response = snippets.stream()
-                .map(snippet -> new SnippetValidLintingDTO(snippet, snippet.getLintStatus()))
+        List<SnippetValidFormatDTO> response = snippets.stream()
+                .map(snippet -> new SnippetValidFormatDTO(snippet, snippet.getFormatStatus()))
                 .toList();
         return ResponseEntity.ok(response);
     }
