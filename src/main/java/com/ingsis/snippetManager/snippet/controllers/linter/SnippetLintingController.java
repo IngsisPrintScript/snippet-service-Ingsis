@@ -108,7 +108,7 @@ public class SnippetLintingController {
     @GetMapping("/snippets/lint-status")
     public ResponseEntity<List<SnippetValidLintingDTO>> getLintStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
         List<SnippetValidLintingDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidLintingDTO(snippet, snippet.getLintStatus()))
                 .toList();
@@ -117,7 +117,7 @@ public class SnippetLintingController {
 
     @GetMapping("/status/{userId}")
     public List<Snippet> getLintStatus(@PathVariable String userId) {
-        return snippetRepo.findAllAccessibleByUserId(userId);
+        return snippetRepo.findAll();
     }
 
     private static String getString(Jwt jwt) {

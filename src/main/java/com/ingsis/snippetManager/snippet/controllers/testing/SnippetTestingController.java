@@ -14,8 +14,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -64,7 +62,7 @@ public class SnippetTestingController {
     @GetMapping("/snippets/test-status")
     public ResponseEntity<List<SnippetTestsStatusDTO>> getTestsStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
 
         List<SnippetTestsStatusDTO> response = snippets.stream()
                 .map(snippet -> new SnippetTestsStatusDTO(

@@ -88,7 +88,7 @@ public class SnippetFormatController {
     @GetMapping("/snippets/format-status")
     public ResponseEntity<List<SnippetValidFormatDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
         List<SnippetValidFormatDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidFormatDTO(snippet, snippet.getFormatStatus()))
                 .toList();
@@ -97,7 +97,7 @@ public class SnippetFormatController {
 
     @GetMapping("/status/{userId}")
     public List<Snippet> getFormatStatus(@PathVariable String userId) {
-        return snippetRepo.findAllAccessibleByUserId(userId);
+        return snippetRepo.findAll();
     }
 
     private static String getString(Jwt jwt) {

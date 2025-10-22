@@ -38,9 +38,9 @@ public class SnippetController {
     @PostMapping("/create/file")
     public ResponseEntity<?> createSnippetFromFile(
             @ModelAttribute RequestFileDTO fileDTO, @AuthenticationPrincipal Jwt jwt) throws IOException {
-        Snippet snippet = getSnippet(fileDTO);
-        ValidationResult saved = snippetService.createSnippet(snippet, getOwnerId(jwt));
-
+        Snippet snippet = getSnippetFromFile(fileDTO);
+        snippetService.uploadSnippetContent(snippet.getId(),new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
+        ValidationResult saved = snippetService.createSnippet(snippet);
         if (!saved.isValid()) {
             String errorMsg =
                     String.format(
@@ -51,23 +51,14 @@ public class SnippetController {
         return ResponseEntity.ok(saved);
     }
 
-    private Snippet getSnippet(RequestFileDTO fileDTO) throws IOException {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", fileDTO.file().getOriginalFilename(), new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
-        return new Converter().convertFileToSnippet(fileDTO, contentUrl);
-    }
-
     // User Story 3
     @PostMapping("/create/text")
     public ResponseEntity<?> createSnippet(
-            @RequestBody RequestSnippetDTO snippet, @AuthenticationPrincipal Jwt jwt) {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", "code", snippet.content());
-
+            @RequestBody RequestSnippetDTO snippetDTO, @AuthenticationPrincipal Jwt jwt) {
+        Snippet snippet = getSnippetFromText(snippetDTO);
+        snippetService.uploadSnippetContent(snippet.getId(), snippetDTO.content());
         ValidationResult saved =
-                snippetService.createSnippet(
-                        new Converter().convertToSnippet(snippet, contentUrl), getOwnerId(jwt));
-
+                snippetService.createSnippet(snippet);
         if (!saved.isValid()) {
             String errorMsg =
                     String.format(
@@ -89,8 +80,8 @@ public class SnippetController {
             @ModelAttribute RequestFileDTO fileDTO,
             @AuthenticationPrincipal Jwt jwt) {
         try {
-            Snippet snippet = getSnippet(fileDTO);
-            ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
+            Snippet snippet = getSnippetFromFile(fileDTO);
+            ValidationResult result = snippetService.updateSnippet(id, snippet,new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
             testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
             if (!result.isValid()) {
                 String errorMsg =
@@ -111,11 +102,8 @@ public class SnippetController {
             @PathVariable UUID id,
             @RequestBody RequestSnippetDTO updatedSnippet,
             @AuthenticationPrincipal Jwt jwt) {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", "code", updatedSnippet.content());
-        ValidationResult result =
-                snippetService.updateSnippet(
-                        id, new Converter().convertToSnippet(updatedSnippet, contentUrl), getOwnerId(jwt));
+        Snippet snippet = getSnippetFromText(updatedSnippet);
+        ValidationResult result = snippetService.updateSnippet(id, snippet,updatedSnippet.content());
         testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
         if (!result.isValid()) {
             String errorMsg =
@@ -147,7 +135,7 @@ public class SnippetController {
     public ResponseEntity<SnippetContentDTO> getSnippet(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
-        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
+        Snippet snippet = snippetService.getSnippetById(id);
         logger.info("Snippet exist? {}", snippet != null);
         if (snippet == null) {
             return ResponseEntity.badRequest().build();
@@ -160,11 +148,46 @@ public class SnippetController {
     @GetMapping("/snippet")
     public ResponseEntity<Snippet> getAllSnippetData( @AuthenticationPrincipal Jwt jwt, @RequestParam UUID id) {
         logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
-        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
+        Snippet snippet = snippetService.getSnippetById(id);
         logger.info("Snippet exist? {}", snippet != null);
         if (snippet == null) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(snippet);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteSnippet(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = getOwnerId(jwt);
+        logger.info("Deleting snippet {} for user {}", id, userId);
+
+        try {
+            Snippet snippet = snippetService.getSnippetById(id);
+            if (snippet == null) {
+                return ResponseEntity.status(404).body("Snippet not found or not accessible.");
+            }
+            boolean deletedPermissions = userAuthorizationService.deleteUserAuthorization(userId, id);
+            if (!deletedPermissions) {
+                logger.warn("Permissions for snippet {} could not be deleted for user {}", id, userId);
+                return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
+            }
+            testingService.deleteSnippetTest(id);
+            logger.info("Snippet {} deleted successfully for user {}", id, userId);
+            return snippetService.deleteSnippet(id);
+        } catch (Exception e) {
+            logger.error("Error deleting snippet {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Error deleting snippet: " + e.getMessage());
+        }
+    }
+
+    private Snippet getSnippetFromFile(RequestFileDTO fileDTO){
+        return new Converter().convertFileToSnippet(fileDTO);
+    }
+
+    private Snippet getSnippetFromText(RequestSnippetDTO fileDTO){
+        return new Converter().convertToSnippet(fileDTO);
     }
 }

@@ -41,6 +41,9 @@ redis:
     format: ${REDIS_GROUP_FORMAT_KEY}
     test: ${REDIS_GROUP_TEST_KEY}
 
+bucket:
+  url: ${BUCKET_URL}
+
 azure:
   storage:
     connection-string: DefaultEndpointsProtocol=https;AccountName=${AZURE_STORAGE_ACCOUNT_NAME};AccountKey=${AZURE_STORAGE_ACCOUNT_KEY};BlobEndpoint=${AZURE_STORAGE_BLOB_ENDPOINT}

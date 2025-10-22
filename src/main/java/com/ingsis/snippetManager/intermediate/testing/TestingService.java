@@ -1,11 +1,11 @@
 package com.ingsis.snippetManager.intermediate.testing;
 
-import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
+import com.azure.core.exception.ResourceNotFoundException;
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.testing.TestRequestProducer;
 import com.ingsis.snippetManager.redis.testing.dto.TestRequestEvent;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.TestStatus;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,16 +26,16 @@ public class TestingService {
     private final RestTemplate restTemplate;
     private final String testingServiceUrl;
     private final SnippetRepo snippetRepo;
-    private final StorageService storageService;
+    private final AssetService assetService;
     private final TestRequestProducer testRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(TestingService.class);
 
 
-    public TestingService(@Value("http://localhost:8084/test") String testingServiceUrl, SnippetRepo snippetRepo, StorageService storageService, TestRequestProducer testRequestProducer) {
+    public TestingService(@Value("http://localhost:8084/test") String testingServiceUrl, SnippetRepo snippetRepo, AssetService assetService, TestRequestProducer testRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.testingServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
-        this.storageService = storageService;
+        this.assetService = assetService;
         this.testRequestProducer = testRequestProducer;
     }
 
@@ -61,7 +61,7 @@ public class TestingService {
     public void runAllTestsForSnippet(String userId, UUID snippetId) {
         try {
             logger.info("Running all tests for snippet {}", snippetId);
-            Snippet snippet = snippetRepo.findSnippetByIdAndSnippetOwnerId(snippetId,userId);
+            Snippet snippet = snippetRepo.findById(snippetId).orElseThrow();
             List<UUID> testsId = snippet.getTestId();
             for (UUID test : testsId) {
                 TestToRunDTO dto = new TestToRunDTO(test);
@@ -76,10 +76,8 @@ public class TestingService {
 
     public void runTestCase(String userId, TestToRunDTO dto, UUID snippetId) {
         logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
-        Snippet snippet = snippetRepo.findByIdAndSnippetOwnerId(snippetId,userId).orElseThrow(NoSuchElementException::new);
-        byte[] contentBytes = storageService.download(snippet.getContentUrl());
-        logger.info("Downloaded content for snippet {} from {}", snippetId, snippet.getContentUrl());
-        String content = new String(contentBytes, StandardCharsets.UTF_8);
+        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
+        String content = assetService.getSnippet(snippet.getId()).getBody();
         TestRequestEvent event = new TestRequestEvent(
                 userId,
                 snippetId,
@@ -91,11 +89,10 @@ public class TestingService {
 
     public void runParticularTest(String userId, TestToRunDTO dto, UUID snippetId) {
         logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
-        Snippet snippet = snippetRepo.findByIdAndSnippetOwnerId(snippetId,userId).orElseThrow(NoSuchElementException::new);
-        byte[] contentBytes = storageService.download(snippet.getContentUrl());
-        String content = new String(contentBytes, StandardCharsets.UTF_8);
+        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
+        String content = assetService.getSnippet(snippet.getId()).getBody();
         String url = testingServiceUrl + "/run?userId=" + userId;
         logger.info("Url: {}",url);
-        ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestStatus.class).getBody());
+        ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestRunResultDTO.class).getBody());
     }
 }
