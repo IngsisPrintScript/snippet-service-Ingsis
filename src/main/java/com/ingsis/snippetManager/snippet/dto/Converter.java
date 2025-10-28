@@ -6,13 +6,14 @@ import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 
 public class Converter {
 
-    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO, String contentUrl) {
+    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO, String contentUrl, String ownerId) {
         return new Snippet(
                 snippetDTO.name(),
                 snippetDTO.description(),
                 snippetDTO.language(),
                 snippetDTO.version(),
-                contentUrl);
+                contentUrl,
+                ownerId);
     }
 
     public Snippet convertFileToSnippet(RequestFileDTO fileDTO, String contentUrl) {
