@@ -8,6 +8,39 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
+// Cargar variables de .env automáticamente
+tasks.named('processResources') {
+	doFirst {
+		def envFile = file('.env')
+		if (envFile.exists()) {
+			envFile.eachLine { line ->
+				def matcher = line =~ /^([^#][^=]+)=(.*)$/
+				if (matcher.matches()) {
+					def key = matcher.group(1).trim()
+					def value = matcher.group(2).trim()
+					System.setProperty(key, value)
+				}
+			}
+		}
+	}
+}
+
+tasks.named('bootRun') {
+	doFirst {
+		def envFile = file('.env')
+		if (envFile.exists()) {
+			envFile.eachLine { line ->
+				def matcher = line =~ /^([^#][^=]+)=(.*)$/
+				if (matcher.matches()) {
+					def key = matcher.group(1).trim()
+					def value = matcher.group(2).trim()
+					System.setProperty(key, value)
+				}
+			}
+		}
+	}
+}
+
 group = 'com.ingsis'
 version = '0.0.1-SNAPSHOT'
 description = 'Snippet Service for Ingsis'
@@ -38,6 +71,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
 
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.azure:azure-storage-blob:12.27.0'
