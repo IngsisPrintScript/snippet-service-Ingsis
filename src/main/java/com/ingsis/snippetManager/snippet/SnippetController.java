@@ -1,10 +1,10 @@
 package com.ingsis.snippetManager.snippet;
 
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
-import com.ingsis.snippetManager.redis.testing.dto.TestReturnDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.*;
 import com.ingsis.snippetManager.snippet.dto.Converter;
-import com.ingsis.snippetManager.intermediate.UserAuthorizationService;
+import com.ingsis.snippetManager.intermediate.UserPermissionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -22,25 +22,30 @@ import java.util.UUID;
 public class SnippetController {
 
     private final SnippetService snippetService;
-    private final UserAuthorizationService userAuthorizationService;
+    private final UserPermissionService userPermissionService;
     private final TestingService testingService;
-    private static final Logger logger = LoggerFactory.getLogger(SnippetController.class);
+
 
     public SnippetController(
             SnippetService snippetService,
-            UserAuthorizationService userAuthorizationService,TestingService testingService) {
+            UserPermissionService userPermissionService, TestingService testingService,
+            UserPermissionService permissionService) {
         this.snippetService = snippetService;
-        this.userAuthorizationService = userAuthorizationService;
+        this.userPermissionService = userPermissionService;
         this.testingService = testingService;
     }
 
-    // User Story 1
+    //Create from a file
     @PostMapping("/create/file")
     public ResponseEntity<?> createSnippetFromFile(
             @ModelAttribute RequestFileDTO fileDTO, @AuthenticationPrincipal Jwt jwt) throws IOException {
-        Snippet snippet = getSnippet(fileDTO);
-        ValidationResult saved = snippetService.createSnippet(snippet, getOwnerId(jwt));
-
+        Snippet snippet = getSnippetFromFile(fileDTO);
+        ResponseEntity<String> response = userPermissionService.createUser(jwt.getSubject(),AuthorizationActions.ALL,snippet.getId());
+        if(!response.getStatusCode().is2xxSuccessful()) {
+            return ResponseEntity.internalServerError().body(response.getBody());
+        }
+        snippetService.uploadSnippetContent(snippet.getId(),new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
+        ValidationResult saved = snippetService.createSnippet(snippet);
         if (!saved.isValid()) {
             String errorMsg =
                     String.format(
@@ -51,49 +56,24 @@ public class SnippetController {
         return ResponseEntity.ok(saved);
     }
 
-    private Snippet getSnippet(RequestFileDTO fileDTO) throws IOException {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", fileDTO.file().getOriginalFilename(), new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
-        return new Converter().convertFileToSnippet(fileDTO, contentUrl);
-    }
-
-    // User Story 3
+    // Create from txt
     @PostMapping("/create/text")
     public ResponseEntity<?> createSnippet(
-            @RequestBody RequestSnippetDTO snippet, @AuthenticationPrincipal Jwt jwt) {
-        try {
-            System.out.println("=== DEBUG: createSnippet llamado ===");
-            System.out.println("Snippet name: " + snippet.name());
-            System.out.println("Snippet language: " + snippet.language());
-            
-            // TEMPORAL: Para desarrollo sin Azure Storage, usar content directamente
-            String contentUrl = snippet.content(); // Usar content directo en vez de subir a Azure
-            
-            // TODO: Habilitar upload a Azure cuando esté configurado
-            // String contentUrl = snippetService.uploadSnippetContent("snippets", "code", snippet.content());
-
-            String ownerId = getOwnerId(jwt);
-            System.out.println("OwnerId: " + ownerId);
-            
-            Snippet converted = new Converter().convertToSnippet(snippet, contentUrl, ownerId);
-            System.out.println("Snippet convertido: " + converted.getName());
-            
-            ValidationResult saved =
-                    snippetService.createSnippet(converted, ownerId);
-            
-            System.out.println("ValidationResult: " + saved.isValid());
-            if (!saved.isValid()) {
-                String errorMsg =
-                        String.format(
-                                "Invalid Snippet: %s in line: %d, column: %d",
-                                saved.getMessage(), saved.getLine(), saved.getColumn());
-                return ResponseEntity.unprocessableEntity().body(errorMsg);
-            }
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            System.out.println("ERROR en createSnippet: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            @RequestBody RequestSnippetDTO snippetDTO, @AuthenticationPrincipal Jwt jwt) {
+        Snippet snippet = getSnippetFromText(snippetDTO);
+        ResponseEntity<String> response = userPermissionService.createUser(jwt.getSubject(),AuthorizationActions.ALL,snippet.getId());
+        if(!response.getStatusCode().is2xxSuccessful()) {
+            return ResponseEntity.internalServerError().body(response.getBody());
+        }
+        snippetService.uploadSnippetContent(snippet.getId(), snippetDTO.content());
+        ValidationResult saved =
+                snippetService.createSnippet(snippet);
+        if (!saved.isValid()) {
+            String errorMsg =
+                    String.format(
+                            "Invalid Snippet: %s in line: %d, column: %d",
+                            saved.getMessage(), saved.getLine(), saved.getColumn());
+            return ResponseEntity.unprocessableEntity().body(errorMsg);
         }
     }
 
@@ -102,16 +82,20 @@ public class SnippetController {
         return jwt != null ? jwt.getClaimAsString("sub") : "dev-user";
     }
 
-    // User Story 2
+    // Update from File
     @PutMapping("/{id}/update/file")
-    public ResponseEntity<?> updateSnippetFromFile(
+    public ResponseEntity<String> updateSnippetFromFile(
             @PathVariable UUID id,
             @ModelAttribute RequestFileDTO fileDTO,
             @AuthenticationPrincipal Jwt jwt) {
         try {
-            Snippet snippet = getSnippet(fileDTO);
-            ValidationResult result = snippetService.updateSnippet(id, snippet, getOwnerId(jwt));
-            testingService.runAllTestsForSnippet(getOwnerId(jwt), id, snippet.getContentUrl());
+            Snippet snippet = getSnippetFromFile(fileDTO);
+            if(!userPermissionService.getUserSnippets(
+                    jwt.getSubject(),AuthorizationActions.ALL).contains(snippet.getId())){
+                return ResponseEntity.unprocessableEntity().body("Not Authorized to modify snippet");
+            }
+            ValidationResult result = snippetService.updateSnippet(id, snippet,new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8));
+            testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
             if (!result.isValid()) {
                 String errorMsg =
                         String.format(
@@ -119,29 +103,25 @@ public class SnippetController {
                                 result.getMessage(), result.getLine(), result.getColumn());
                 return ResponseEntity.unprocessableEntity().body(errorMsg);
             }
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(result.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error processing file: " + e.getMessage());
         }
     }
 
-    // User Story 4
+    // Update from txt
     @PutMapping("/{id}/update/text")
-    public ResponseEntity<?> updateSnippet(
+    public ResponseEntity<String> updateSnippet(
             @PathVariable UUID id,
             @RequestBody RequestSnippetDTO updatedSnippet,
             @AuthenticationPrincipal Jwt jwt) {
-        // TEMPORAL: Para desarrollo sin Azure Storage, usar content directamente
-        String contentUrl = updatedSnippet.content(); // Usar content directo en vez de subir a Azure
-        
-        // TODO: Habilitar upload a Azure cuando esté configurado
-        // String contentUrl = snippetService.uploadSnippetContent("snippets", "code", updatedSnippet.content());
-        
-        String ownerId = getOwnerId(jwt);
-        ValidationResult result =
-                snippetService.updateSnippet(
-                        id, new Converter().convertToSnippet(updatedSnippet, contentUrl, ownerId), ownerId);
-        testingService.runAllTestsForSnippet(ownerId, id, updatedSnippet.content());
+        Snippet snippet = getSnippetFromText(updatedSnippet);
+        if(!userPermissionService.getUserSnippets(
+                jwt.getSubject(),AuthorizationActions.ALL).contains(snippet.getId())){
+            return ResponseEntity.unprocessableEntity().body("Not Authorized to modify snippet");
+        }
+        ValidationResult result = snippetService.updateSnippet(id, snippet,updatedSnippet.content());
+        testingService.runAllTestsForSnippet(getOwnerId(jwt), id);
         if (!result.isValid()) {
             String errorMsg =
                     String.format(
@@ -149,7 +129,7 @@ public class SnippetController {
                             result.getMessage(), result.getLine(), result.getColumn());
             return ResponseEntity.unprocessableEntity().body(errorMsg);
         }
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(result.getMessage());
     }
 
     // User story 5
@@ -167,13 +147,10 @@ public class SnippetController {
         }
     }
 
-    //User story 5
     @GetMapping("/{id}")
     public ResponseEntity<SnippetContentDTO> getSnippet(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
-        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
-        logger.info("Snippet exist? {}", snippet != null);
+        Snippet snippet = snippetService.getSnippetById(id);
         if (snippet == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -182,14 +159,46 @@ public class SnippetController {
                 snippetService.downloadSnippetContent(snippet.getId())));
 
     }
+
     @GetMapping("/snippet")
     public ResponseEntity<Snippet> getAllSnippetData( @AuthenticationPrincipal Jwt jwt, @RequestParam UUID id) {
-        logger.info("Getting snippet with id: {} by {}", id, getOwnerId(jwt));
-        Snippet snippet = snippetService.getSnippetById(id, getOwnerId(jwt));
-        logger.info("Snippet exist? {}", snippet != null);
+        Snippet snippet = snippetService.getSnippetById(id);
         if (snippet == null) {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(snippet);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteSnippet(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = getOwnerId(jwt);
+        try {
+            Snippet snippet = snippetService.getSnippetById(id);
+            if (snippet == null) {
+                return ResponseEntity.status(404).body("Snippet not found or not accessible.");
+            }
+            ResponseEntity<String> deletedPermissions = userPermissionService.deleteUserAuthorization(userId,id);
+            if (!deletedPermissions.getStatusCode().is2xxSuccessful()) {
+                return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
+            }
+            ResponseEntity<String> deleteTest = testingService.deleteTest(userId, id);
+            if (!deleteTest.getStatusCode().is2xxSuccessful()) {
+                return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
+            }
+            return snippetService.deleteSnippet(id);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error deleting snippet: " + e.getMessage());
+        }
+    }
+
+    private Snippet getSnippetFromFile(RequestFileDTO fileDTO){
+        return new Converter().convertFileToSnippet(fileDTO);
+    }
+
+    private Snippet getSnippetFromText(RequestSnippetDTO fileDTO){
+        return new Converter().convertToSnippet(fileDTO);
     }
 }

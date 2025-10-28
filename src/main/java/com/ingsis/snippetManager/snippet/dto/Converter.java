@@ -4,6 +4,9 @@ import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 
+import java.io.IOException;
+import java.util.UUID;
+
 public class Converter {
 
     public Snippet convertToSnippet(RequestSnippetDTO snippetDTO, String contentUrl, String ownerId) {
@@ -16,12 +19,8 @@ public class Converter {
                 ownerId);
     }
 
-    public Snippet convertFileToSnippet(RequestFileDTO fileDTO, String contentUrl) {
+    public Snippet convertFileToSnippet(RequestFileDTO fileDTO) {
         return new Snippet(
-                fileDTO.name(), fileDTO.description(), fileDTO.language(), fileDTO.version(), contentUrl);
+                fileDTO.name(), fileDTO.description(), fileDTO.language(), fileDTO.version());
     }
-
-//  public TestDTO convertTestToTestDTO(UUID id, TestReceiveDTO testDTO) {
-//    return new TestDTO(testDTO.name(), id, testDTO.input(), testDTO.output());
-//  }
 }

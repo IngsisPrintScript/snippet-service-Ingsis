@@ -1,6 +1,6 @@
 package com.ingsis.snippetManager.intermediate.format;
 
-import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.format.FormatRequestProducer;
 import com.ingsis.snippetManager.redis.format.dto.FormatRequestEvent;
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
@@ -19,9 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class FormatService {
@@ -29,18 +27,18 @@ public class FormatService {
     private final RestTemplate restTemplate;
     private final String formatServiceUrl;
     private final SnippetRepo snippetRepo;
-    private final StorageService storageService;
+    private final AssetService assetService;
     private final FormatRequestProducer formatRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(FormatService.class);
 
     public FormatService(@Value("http://localhost:8082/formater") String testingServiceUrl,
                           SnippetRepo snippetRepo,
-                          StorageService storageService,
+                          AssetService assetService,
                           FormatRequestProducer formatRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.formatServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
-        this.storageService = storageService;
+        this.assetService = assetService;
         this.formatRequestProducer = formatRequestProducer;
     }
 
@@ -58,8 +56,7 @@ public class FormatService {
 
     public SnippetFormatStatus formatContent(Snippet snippet, String ownerId) {
         try {
-            byte[] contentBytes = storageService.download(snippet.getContentUrl());
-            String content = new String(contentBytes, StandardCharsets.UTF_8);
+            String content = assetService.getSnippet(snippet.getId()).getBody();
             logger.info("Evaluating snippet for user {}", ownerId);
             EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
             logger.info("Created the request: {}", request);
@@ -72,9 +69,7 @@ public class FormatService {
             }
             String newContent = response.getBody().content();
             if (!newContent.equals(content)) {
-                byte[] contentToUpdate = newContent.getBytes(StandardCharsets.UTF_8);
-                String blobNameFromUrl = storageService.getBlobNameFromUrl(snippet.getContentUrl());
-                snippet.setContentUrl(storageService.upload("snippets", blobNameFromUrl, contentToUpdate)); // overwrite=true
+                assetService.updateSnippet(snippet.getId(), newContent);
             }
             snippetRepo.save(snippet);
             return SnippetFormatStatus.PASSED;
@@ -93,25 +88,12 @@ public class FormatService {
     }
 
     public void reFormatAllSnippets(String userId) {
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
         logger.info("Format {} snippets for user {}", snippets.size(), userId);
         for (Snippet snippet : snippets) {
             snippet.setLintStatus(SnippetLintStatus.PENDING);
             logger.info("Format snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
-            logger.info("Downloading content for snippet {} from {}", snippet.getId(), snippet.getContentUrl());
-            byte[] contentBytes;
-            try {
-                contentBytes = storageService.download(snippet.getContentUrl());
-            } catch (RuntimeException e) {
-                if (e.getMessage().contains("BlobNotFound")) {
-                    logger.warn("Blob not found for snippet {}, skipping format", snippet.getId());
-                    continue;
-                } else {
-                    throw e;
-                }
-            }
-            logger.info("Downloaded content for snippet {} from {}", snippet.getId(), snippet.getContentUrl());
-            String content = new String(contentBytes, StandardCharsets.UTF_8);
+            String content = assetService.getSnippet(snippet.getId()).getBody();
             FormatRequestEvent event = new FormatRequestEvent(
                     userId,
                     snippet.getId(),

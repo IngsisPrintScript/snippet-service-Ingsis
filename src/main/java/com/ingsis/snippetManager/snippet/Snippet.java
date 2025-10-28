@@ -2,8 +2,6 @@ package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
-import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
-import com.ingsis.snippetManager.snippetShare.SnippetShare;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -17,9 +15,6 @@ public class Snippet {
     private UUID id;
 
     @NotBlank
-    private String snippetOwnerId;
-
-    @NotBlank
     private String name;
 
     @NotBlank
@@ -30,13 +25,6 @@ public class Snippet {
 
     @NotBlank
     private String version;
-
-    @OneToMany(mappedBy = "snippet", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SnippetShare> snippetShare = new ArrayList<>();
-
-    @Column(columnDefinition = "TEXT")
-    private String contentUrl;
-
 
     @ElementCollection
     @CollectionTable(name = "snippet_tests", joinColumns = @JoinColumn(name = "snippet_id"))
@@ -56,27 +44,19 @@ public class Snippet {
     public Snippet() {
     }
 
-    public Snippet(String name, String description, String language, String version, String content) {
+    public Snippet(String name, String description, String language, String version) {
         this.name = name;
         this.description = description;
         this.language = language;
         this.version = version;
-        this.contentUrl = content;
     }
 
-    public Snippet(
-            String name,
-            String description,
-            String language,
-            String version,
-            String content,
-            String ownerId) {
+    public Snippet(UUID snippetId, String name, String description, String language, String version) {
+        this.id = snippetId;
         this.name = name;
         this.description = description;
         this.language = language;
         this.version = version;
-        this.contentUrl = content;
-        this.snippetOwnerId = ownerId;
     }
 
     public UUID getId() {
@@ -99,18 +79,6 @@ public class Snippet {
         return version;
     }
 
-    public String getContentUrl() {
-        return contentUrl;
-    }
-
-    public String getSnippetOwnerId() {
-        return snippetOwnerId;
-    }
-
-    public List<SnippetShare> getSnippetShare() {
-        return snippetShare;
-    }
-
     public List<UUID> getTestId() {
         return testId;
     }
@@ -128,9 +96,7 @@ public class Snippet {
     public void setLintStatus(SnippetLintStatus lintStatus) {
         this.lintStatus = lintStatus;
     }
-    public void setContentUrl(String contentUrl) {
-        this.contentUrl = contentUrl;
-    }
+
 
     public List<TestStatus> getTestStatusList() {
         return testStatusList;

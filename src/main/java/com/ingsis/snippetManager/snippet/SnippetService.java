@@ -6,14 +6,17 @@ import java.util.List;
 import java.util.UUID;
 
 import com.ingsis.snippetManager.intermediate.lint.LintingService;
-import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.controllers.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
+import org.apache.coyote.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,25 +24,29 @@ public class SnippetService {
 
     private final SnippetRepo repository;
     private final LintingService lintingService;
-    private final StorageService storageService;
+    private final AssetService assetService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetService.class);
     // private final PrintScriptParser parser;
 
     // PrintScriptParser parser to add
     public SnippetService(
-            SnippetRepo repository, StorageService storageService, LintingService lintingService) {
+            SnippetRepo repository, AssetService assetService, LintingService lintingService) {
         this.repository = repository;
-        this.storageService = storageService;
+        this.assetService = assetService;
         this.lintingService = lintingService;
         // this.parser = parser;
     }
 
-    public ValidationResult createSnippet(Snippet snippet, String snippetOwnerId) {
+    public ValidationResult createSnippet(Snippet snippet) {
         // ValidationResult result = parser.validate(snippet.getContent()); To DO
         ValidationResult result = new ValidationResult(true, "let name:String = \"Pepe\";");
         if (result.isValid()) {
-            // snippet ya viene con snippetOwnerId asignado
-            repository.save(snippet);
+            Snippet newSnippet = new Snippet(
+                    snippet.getName(),
+                    snippet.getDescription(),
+                    snippet.getLanguage(),
+                    snippet.getVersion());
+            repository.save(newSnippet);
         }
         return result;
     }
@@ -63,7 +70,7 @@ public class SnippetService {
     }
 
     public List<Snippet> getAllSnippetsByOwner(String snippetOwnerId) {
-        return repository.findAllAccessibleByUserId(snippetOwnerId);
+        return repository.findAll();
     }
 
     public List<Snippet> getSnippetsBy(String snippetOwnerId, SnippetFilterDTO filter) {
@@ -89,7 +96,7 @@ public class SnippetService {
                 filter.property() == null;
 
         if (noFilters) {
-            return repository.findAllAccessibleByUserId(snippetOwnerId, sort);
+            return repository.findAll();
         }
 
         String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name() : null;
@@ -97,8 +104,6 @@ public class SnippetService {
         String relationFilter = filter.property() != null ? filter.property().name() : null;
 
         return repository.findFilteredSnippets(
-                snippetOwnerId,
-                relationFilter,
                 nameFilter,
                 languageFilter,
                 sort
@@ -108,7 +113,7 @@ public class SnippetService {
     public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO, String snippetOwnerId) {
         List<SnippetValidLintingDTO> validatedSnippets = new ArrayList<>();
         for (Snippet snippet : snippets) {
-            SnippetLintStatus linting = lintingService.validLinting(snippet.getContentUrl(), snippetOwnerId);
+            SnippetLintStatus linting = lintingService.validLinting(assetService.getSnippet(snippet.getId()).getBody(), snippetOwnerId);
             if (filterDTO.valid() != null) {
                 if (filterDTO.valid() == linting) {
                     validatedSnippets.add(new SnippetValidLintingDTO(snippet, linting));
@@ -120,8 +125,8 @@ public class SnippetService {
         return validatedSnippets;
     }
 
-    public Snippet getSnippetById(UUID id, String ownerId) {
-        return repository.findByIdAndSnippetOwnerId(id, ownerId).orElseThrow(() -> new RuntimeException("Snippet not found"));
+    public Snippet getSnippetById(UUID id) {
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
     }
 
     public String downloadSnippetContent(UUID snippetId) {
@@ -129,22 +134,28 @@ public class SnippetService {
         Snippet snippet = repository.findById(snippetId)
                 .orElseThrow(() -> new RuntimeException("Snippet not found"));
         logger.info("Snippet with id {}", snippet.getId());
-        String contentUrl = snippet.getContentUrl();
-        logger.info("Content url: {}", contentUrl);
-        if (contentUrl == null || contentUrl.isEmpty()) {
-            return "";
-        }
-        byte[] contentBytes = storageService.download(contentUrl);
-        logger.info("Content bytes: {}", contentBytes);
-        return new String(contentBytes, StandardCharsets.UTF_8);
+        String content = assetService.getSnippet(snippetId).getBody();
+        logger.info("Content bytes: {}", content);
+        return content;
     }
 
-    public String uploadSnippetContent(String folder, String fileNamePrefix, String content) {
+    public void uploadSnippetContent(UUID snippetId , String content) {
         if (content == null) {
             content = "";
         }
-        String blobName = UUID.randomUUID() + "-" + fileNamePrefix;
-        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
-        return storageService.upload(folder, blobName, contentBytes);
+        assetService.saveSnippet(snippetId, content);
+    }
+
+    public ResponseEntity<String> deleteSnippet(UUID snippetId) {
+        Snippet snippet = repository.findById(snippetId)
+                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        repository.delete(snippet);
+        try {
+            assetService.deleteSnippet(snippetId);
+            return ResponseEntity.ok("Snippet deleted");
+        } catch (Exception e) {
+            logger.warn("Failed to delete snippet content from storage for snippet {}: {}", snippetId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete snippet content");
+        }
     }
 }

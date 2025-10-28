@@ -3,7 +3,7 @@ package com.ingsis.snippetManager.intermediate.lint;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import com.ingsis.snippetManager.intermediate.azureStorageConfig.StorageService;
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.lint.LintRequestProducer;
 import com.ingsis.snippetManager.redis.lint.dto.LintRequestEvent;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
@@ -27,18 +27,18 @@ public class LintingService {
     private final RestTemplate restTemplate;
     private final String lintingServiceUrl;
     private final SnippetRepo snippetRepo;
-    private final StorageService storageService;
+    private final AssetService assetService;
     private final LintRequestProducer lintRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(LintingService.class);
 
     public LintingService(@Value("http://localhost:8081/linting") String testingServiceUrl,
                           SnippetRepo snippetRepo,
-                          StorageService storageService,
+                          AssetService assetService,
                           LintRequestProducer lintRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.lintingServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
-        this.storageService = storageService;
+        this.assetService = assetService;
         this.lintRequestProducer = lintRequestProducer;
     }
 
@@ -102,14 +102,12 @@ public class LintingService {
     }
 
     public void reLintAllSnippets(String userId) {
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
         logger.info("Linting {} snippets for user {}", snippets.size(), userId);
         for (Snippet snippet : snippets) {
             snippet.setLintStatus(SnippetLintStatus.PENDING);
             logger.info("Linting snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
-            byte[] contentBytes = storageService.download(snippet.getContentUrl());
-            logger.info("Downloaded content for snippet {} from {}", snippet.getId(), snippet.getContentUrl());
-            String content = new String(contentBytes, StandardCharsets.UTF_8);
+            String content = assetService.getSnippet(snippet.getId()).getBody();
             LintRequestEvent event = new LintRequestEvent(
                     userId,
                     snippet.getId(),

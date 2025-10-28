@@ -1,21 +1,14 @@
 package com.ingsis.snippetManager.snippet.controllers.testing;
 
-import com.ingsis.snippetManager.intermediate.UserAuthorizationService;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
-import com.ingsis.snippetManager.redis.testing.dto.TestReturnDTO;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.SnippetService;
-import com.ingsis.snippetManager.snippet.dto.Converter;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,7 +27,7 @@ public class SnippetTestingController {
     @PostMapping("/create")
     public ResponseEntity<GetTestDTO> createTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody List<CreateTestDTO> createDTO
+            @RequestBody CreateTestDTO createDTO
     ) {
         String userId = getOwnerId(jwt);
         return testingService.createTest(userId, createDTO);
@@ -43,12 +36,26 @@ public class SnippetTestingController {
     @PutMapping("/update")
     public ResponseEntity<?> updateTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody List<UpdateTestDTO> updateDTO
+            @RequestBody UpdateTestDTO updateDTO
     ) {
         String userId = getOwnerId(jwt);
         return testingService.updateTest(userId, updateDTO);
     }
 
+    @DeleteMapping("/{testId}")
+    public ResponseEntity<String> deleteParticularTest(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID testId
+    ) {
+        String userId = getOwnerId(jwt);
+        return testingService.deleteParticularTest(userId, testId);
+    }
+
+    @GetMapping("/{snippetId}")
+    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@RequestParam  UUID snippetId) {
+        String userId = getOwnerId(jwt);
+        return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
+    }
     @PostMapping("/run/{snippetId}")
     public ResponseEntity<Void> runSingleTest(
             @AuthenticationPrincipal Jwt jwt,
@@ -56,7 +63,7 @@ public class SnippetTestingController {
             @RequestBody TestToRunDTO testToRunDTO
     ) {
         String userId = getOwnerId(jwt);
-        testingService.runTestCase(userId, testToRunDTO, snippetId);
+        testingService.runParticularTest(userId, testToRunDTO,snippetId);
         return ResponseEntity.accepted().build();
     }
 
@@ -64,7 +71,7 @@ public class SnippetTestingController {
     @GetMapping("/snippets/test-status")
     public ResponseEntity<List<SnippetTestsStatusDTO>> getTestsStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
-        List<Snippet> snippets = snippetRepo.findAllAccessibleByUserId(userId);
+        List<Snippet> snippets = snippetRepo.findAll();
 
         List<SnippetTestsStatusDTO> response = snippets.stream()
                 .map(snippet -> new SnippetTestsStatusDTO(

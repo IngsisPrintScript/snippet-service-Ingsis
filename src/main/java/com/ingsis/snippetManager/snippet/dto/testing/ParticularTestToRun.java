@@ -4,5 +4,5 @@ import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
 
 import java.util.UUID;
 
-public record ParticularTestToRun(UUID testId, String content) {
+public record ParticularTestToRun(UUID testCaseId, String content) {
 }

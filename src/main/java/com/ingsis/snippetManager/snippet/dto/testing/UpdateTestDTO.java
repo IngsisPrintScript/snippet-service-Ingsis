@@ -5,5 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.UUID;
 
-public record UpdateTestDTO(@NotBlank UUID testId, @NotBlank UUID snippetId, String name, List<String> inputs, List<String> outputs) {
+public record UpdateTestDTO(@NotBlank UUID testId,
+                            @NotBlank UUID snippetId,
+                            String name,
+                            List<String> inputs,
+                            List<String> outputs) {
 }
