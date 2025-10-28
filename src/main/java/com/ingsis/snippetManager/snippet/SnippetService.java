@@ -38,33 +38,26 @@ public class SnippetService {
         // ValidationResult result = parser.validate(snippet.getContent()); To DO
         ValidationResult result = new ValidationResult(true, "let name:String = \"Pepe\";");
         if (result.isValid()) {
-            repository.save(
-                    new Snippet(
-                            snippet.getName(),
-                            snippet.getDescription(),
-                            snippet.getLanguage(),
-                            snippet.getVersion(),
-                            snippet.getContentUrl(),
-                            snippetOwnerId));
+            // snippet ya viene con snippetOwnerId asignado
+            repository.save(snippet);
         }
         return result;
     }
 
     public ValidationResult updateSnippet(UUID id, Snippet updatedSnippet, String snippetOwnerId) {
-        repository
+        Snippet existingSnippet = repository
                 .findByIdAndSnippetOwnerId(id, snippetOwnerId)
                 .orElseThrow(() -> new RuntimeException("Snippet not found"));
         // ValidationResult result = parserClient.validate(updatedSnippet.content());
         ValidationResult result = new ValidationResult(true, "let name:String = \"Pepe\";");
         if (result.isValid()) {
-            repository.save(
-                    new Snippet(
-                            updatedSnippet.getName(),
-                            updatedSnippet.getDescription(),
-                            updatedSnippet.getLanguage(),
-                            updatedSnippet.getVersion(),
-                            updatedSnippet.getContentUrl(),
-                            updatedSnippet.getSnippetOwnerId()));
+            // Actualizar campos del snippet existente
+            existingSnippet.setName(updatedSnippet.getName());
+            existingSnippet.setDescription(updatedSnippet.getDescription());
+            existingSnippet.setLanguage(updatedSnippet.getLanguage());
+            existingSnippet.setVersion(updatedSnippet.getVersion());
+            existingSnippet.setContentUrl(updatedSnippet.getContentUrl());
+            repository.save(existingSnippet);
         }
         return result;
     }

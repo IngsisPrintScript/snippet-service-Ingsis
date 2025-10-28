@@ -61,25 +61,45 @@ public class SnippetController {
     @PostMapping("/create/text")
     public ResponseEntity<?> createSnippet(
             @RequestBody RequestSnippetDTO snippet, @AuthenticationPrincipal Jwt jwt) {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", "code", snippet.content());
+        try {
+            System.out.println("=== DEBUG: createSnippet llamado ===");
+            System.out.println("Snippet name: " + snippet.name());
+            System.out.println("Snippet language: " + snippet.language());
+            
+            // TEMPORAL: Para desarrollo sin Azure Storage, usar content directamente
+            String contentUrl = snippet.content(); // Usar content directo en vez de subir a Azure
+            
+            // TODO: Habilitar upload a Azure cuando esté configurado
+            // String contentUrl = snippetService.uploadSnippetContent("snippets", "code", snippet.content());
 
-        ValidationResult saved =
-                snippetService.createSnippet(
-                        new Converter().convertToSnippet(snippet, contentUrl), getOwnerId(jwt));
-
-        if (!saved.isValid()) {
-            String errorMsg =
-                    String.format(
-                            "Invalid Snippet: %s in line: %d, column: %d",
-                            saved.getMessage(), saved.getLine(), saved.getColumn());
-            return ResponseEntity.unprocessableEntity().body(errorMsg);
+            String ownerId = getOwnerId(jwt);
+            System.out.println("OwnerId: " + ownerId);
+            
+            Snippet converted = new Converter().convertToSnippet(snippet, contentUrl, ownerId);
+            System.out.println("Snippet convertido: " + converted.getName());
+            
+            ValidationResult saved =
+                    snippetService.createSnippet(converted, ownerId);
+            
+            System.out.println("ValidationResult: " + saved.isValid());
+            if (!saved.isValid()) {
+                String errorMsg =
+                        String.format(
+                                "Invalid Snippet: %s in line: %d, column: %d",
+                                saved.getMessage(), saved.getLine(), saved.getColumn());
+                return ResponseEntity.unprocessableEntity().body(errorMsg);
+            }
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            System.out.println("ERROR en createSnippet: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
-        return ResponseEntity.ok(saved);
     }
 
     private static String getOwnerId(Jwt jwt) {
-        return jwt.getClaimAsString("sub");
+        // Development mode: allow missing JWT and use a fallback owner id
+        return jwt != null ? jwt.getClaimAsString("sub") : "dev-user";
     }
 
     // User Story 2
@@ -111,12 +131,17 @@ public class SnippetController {
             @PathVariable UUID id,
             @RequestBody RequestSnippetDTO updatedSnippet,
             @AuthenticationPrincipal Jwt jwt) {
-        String contentUrl = snippetService.uploadSnippetContent(
-                "snippets", "code", updatedSnippet.content());
+        // TEMPORAL: Para desarrollo sin Azure Storage, usar content directamente
+        String contentUrl = updatedSnippet.content(); // Usar content directo en vez de subir a Azure
+        
+        // TODO: Habilitar upload a Azure cuando esté configurado
+        // String contentUrl = snippetService.uploadSnippetContent("snippets", "code", updatedSnippet.content());
+        
+        String ownerId = getOwnerId(jwt);
         ValidationResult result =
                 snippetService.updateSnippet(
-                        id, new Converter().convertToSnippet(updatedSnippet, contentUrl), getOwnerId(jwt));
-        testingService.runAllTestsForSnippet(getOwnerId(jwt), id, updatedSnippet.content());
+                        id, new Converter().convertToSnippet(updatedSnippet, contentUrl, ownerId), ownerId);
+        testingService.runAllTestsForSnippet(ownerId, id, updatedSnippet.content());
         if (!result.isValid()) {
             String errorMsg =
                     String.format(
@@ -128,9 +153,9 @@ public class SnippetController {
     }
 
     // User story 5
-    @GetMapping
+    @PostMapping("/list")
     public ResponseEntity<?> getSnippets(
-            @AuthenticationPrincipal Jwt jwt, @RequestBody SnippetFilterDTO filterDTO) {
+            @AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) SnippetFilterDTO filterDTO) {
         try {
             List<Snippet> snippets =
                     filterDTO == null

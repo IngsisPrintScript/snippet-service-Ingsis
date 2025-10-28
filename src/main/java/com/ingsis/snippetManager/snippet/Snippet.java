@@ -139,4 +139,24 @@ public class Snippet {
     public void setTestStatusList(List<TestStatus> testStatusList) {
         this.testStatusList = testStatusList;
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public void setSnippetOwnerId(String snippetOwnerId) {
+        this.snippetOwnerId = snippetOwnerId;
+    }
 }
