@@ -101,6 +101,7 @@ public class SnippetFormatController {
     }
 
     private static String getString(Jwt jwt) {
-        return jwt.getClaimAsString("sub");
+        // Development mode: allow missing JWT and use a fallback owner id
+        return jwt != null ? jwt.getClaimAsString("sub") : "dev-user";
     }
 }
