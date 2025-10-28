@@ -51,7 +51,11 @@ public class SnippetTestingController {
         return testingService.deleteParticularTest(userId, testId);
     }
 
-
+    @GetMapping("/{snippetId}")
+    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@RequestParam  UUID snippetId) {
+        String userId = getOwnerId(jwt);
+        return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
+    }
     @PostMapping("/run/{snippetId}")
     public ResponseEntity<Void> runSingleTest(
             @AuthenticationPrincipal Jwt jwt,

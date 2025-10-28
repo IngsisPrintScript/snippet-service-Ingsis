@@ -10,6 +10,8 @@ import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,32 @@ public class TestingService {
         logger.info("Updating at url: {}", url);
         restTemplate.put(url, rulesDTO);
         return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<List<GetTestDTO>> getTestsBySnippetIdAndTestOwner(String userId, UUID snippetId) {
+        try {
+            logger.info("Fetching tests for snippet {} and user {}", snippetId, userId);
+            String url = testingServiceUrl + "/getBySnippet?userId=" + userId + "&snippetId=" + snippetId;
+            logger.info("GET request to {}", url);
+
+            ResponseEntity<List<GetTestDTO>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<GetTestDTO>>() {}
+            );
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return ResponseEntity.ok(response.getBody());
+            } else {
+                logger.warn("No tests found for snippet {} and user {}", snippetId, userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(null);
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching tests for snippet {} and user {}: {}", snippetId, userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
     }
 
     public ResponseEntity<String> deleteTest(String userId, UUID snippetId) {
