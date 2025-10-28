@@ -3,9 +3,9 @@ package com.ingsis.snippetManager.intermediate;
 import java.util.List;
 import java.util.UUID;
 
-import com.ingsis.snippetManager.intermediate.authorization.AuthorizationActions;
-import com.ingsis.snippetManager.intermediate.authorization.CreatePermission;
-import com.ingsis.snippetManager.intermediate.authorization.FilterDTO;
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
+import com.ingsis.snippetManager.intermediate.permissions.CreatePermission;
+import com.ingsis.snippetManager.intermediate.permissions.FilterDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -13,17 +13,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class UserAuthorizationService {
+public class UserPermissionService {
 
     private final RestTemplate restTemplate;
     private final String authorizationServiceUrl;
 
-    public UserAuthorizationService(@Value("http://localhost:8086/") String authServiceUrl) {
+    public UserPermissionService(@Value("http://localhost:8086/") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authorizationServiceUrl = authServiceUrl;
     }
 
-    public boolean createUser(String userId, AuthorizationActions action, UUID snippetId) {
+    public ResponseEntity<String> createUser(String userId, AuthorizationActions action, UUID snippetId) {
         try {
             CreatePermission createPermission =
                     new CreatePermission(userId, snippetId, AuthorizationActions.valueOf(action.name()));
@@ -35,9 +35,9 @@ public class UserAuthorizationService {
             ResponseEntity<String> response =
                     restTemplate.postForEntity(authorizationServiceUrl + "/permissions", request, String.class);
 
-            return response.getStatusCode().is2xxSuccessful();
+            return ResponseEntity.ok(response.getBody());
         } catch (Exception e) {
-            return false;
+            return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
     public List<UUID> getUserSnippets(String userId, AuthorizationActions action) {
@@ -80,7 +80,7 @@ public class UserAuthorizationService {
         }
     }
 
-    public boolean deleteUserAuthorization(String userId, UUID snippetId) {
+    public ResponseEntity<String> deleteUserAuthorization(String userId, UUID snippetId) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -92,9 +92,9 @@ public class UserAuthorizationService {
                     request,
                     String.class);
 
-            return response.getStatusCode().is2xxSuccessful();
+            return ResponseEntity.ok().body(response.getBody());
         } catch (Exception e) {
-            return false;
+            return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
 }

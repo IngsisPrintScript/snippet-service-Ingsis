@@ -26,7 +26,7 @@ public class LintRequestProducer {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
-
+    
     public void publish(LintRequestEvent event) {
         try {
             String json = objectMapper.writeValueAsString(event);

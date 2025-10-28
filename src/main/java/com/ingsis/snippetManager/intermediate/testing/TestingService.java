@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -56,6 +55,40 @@ public class TestingService {
         logger.info("Updating at url: {}", url);
         restTemplate.put(url, rulesDTO);
         return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<String> deleteTest(String userId, UUID snippetId) {
+        try {
+            logger.info("Deleting test {} for user {}", snippetId, userId);
+            String url = testingServiceUrl + "/delete?userId=" + userId + "&testId=" + snippetId;
+            restTemplate.delete(url);
+            return ResponseEntity.ok("Test " + snippetId + " deleted successfully.");
+        } catch (ResourceNotFoundException e) {
+            logger.error("Test {} not found for user {}", snippetId, userId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Test not found: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error deleting test {} for user {}: {}", snippetId, userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting test: " + e.getMessage());
+        }
+    }
+
+    public ResponseEntity<String> deleteParticularTest(String userId, UUID testId) {
+        try {
+            logger.info("Deleting test {} for user {}", testId, userId);
+            String url = testingServiceUrl + "?userId=" + userId + "&testId=" + testId;
+            restTemplate.delete(url);
+            return ResponseEntity.ok("Test " + testId + " deleted successfully.");
+        } catch (ResourceNotFoundException e) {
+            logger.error("Test {} not found for user {}", testId, userId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Test not found: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error deleting test {} for user {}: {}", testId, userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting test: " + e.getMessage());
+        }
     }
 
     public void runAllTestsForSnippet(String userId, UUID snippetId) {

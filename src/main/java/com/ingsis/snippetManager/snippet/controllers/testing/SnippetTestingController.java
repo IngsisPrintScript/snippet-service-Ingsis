@@ -1,13 +1,8 @@
 package com.ingsis.snippetManager.snippet.controllers.testing;
 
-import com.ingsis.snippetManager.intermediate.UserAuthorizationService;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
-import com.ingsis.snippetManager.redis.testing.dto.TestReturnDTO;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.SnippetService;
-import com.ingsis.snippetManager.snippet.dto.Converter;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,6 +41,16 @@ public class SnippetTestingController {
         String userId = getOwnerId(jwt);
         return testingService.updateTest(userId, updateDTO);
     }
+
+    @DeleteMapping("/{testId}")
+    public ResponseEntity<String> deleteParticularTest(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID testId
+    ) {
+        String userId = getOwnerId(jwt);
+        return testingService.deleteParticularTest(userId, testId);
+    }
+
 
     @PostMapping("/run/{snippetId}")
     public ResponseEntity<Void> runSingleTest(
