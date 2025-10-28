@@ -27,7 +27,6 @@ public class SnippetFormatController {
     private final FormatService formatService;
     private final SnippetController snippetController;
     private final SnippetRepo snippetRepo;
-    private static final Logger logger = LoggerFactory.getLogger(SnippetFormatController.class);
 
     public SnippetFormatController(
             FormatService formatService,
@@ -45,9 +44,7 @@ public class SnippetFormatController {
     ) {
         try {
             String ownerId = getString(jwt);
-            logger.info("Validating linting for snippet {} by user {}", snippetId, ownerId);
             Snippet contentDTO = (snippetController.getAllSnippetData(jwt, snippetId)).getBody();
-            logger.info("SnippetDTO exist? {}", contentDTO != null);
             if (contentDTO == null) {
                 return ResponseEntity.badRequest().build();
             }

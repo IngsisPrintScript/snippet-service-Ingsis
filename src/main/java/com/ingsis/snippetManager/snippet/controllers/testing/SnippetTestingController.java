@@ -52,7 +52,7 @@ public class SnippetTestingController {
     }
 
     @GetMapping("/{snippetId}")
-    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@RequestParam  UUID snippetId) {
+    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@PathVariable  UUID snippetId) {
         String userId = getOwnerId(jwt);
         return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
     }

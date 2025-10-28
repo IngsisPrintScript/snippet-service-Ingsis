@@ -68,11 +68,11 @@ public class SnippetService {
         return result;
     }
 
-    public List<Snippet> getAllSnippetsByOwner(String snippetOwnerId) {
-        return repository.findAll();
+    public List<Snippet> getAllSnippetsByOwner(List<UUID> snippetsId) {
+        return repository.findAllById(snippetsId);
     }
 
-    public List<Snippet> getSnippetsBy(String snippetOwnerId, SnippetFilterDTO filter) {
+    public List<Snippet> getSnippetsBy(List<UUID> snippetsId,SnippetFilterDTO filter) {
         Sort sort = Sort.unsorted();
         if (filter.sortBy() != null && filter.order() != null) {
             Sort.Direction direction =
@@ -93,14 +93,12 @@ public class SnippetService {
                 (filter.language() == null || filter.language().isEmpty()) &&
                 filter.valid() == null &&
                 filter.property() == null;
-
         if (noFilters) {
-            return repository.findAll();
+            return getAllSnippetsByOwner(snippetsId);
         }
 
         String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name() : null;
         String languageFilter = (filter.language() != null && !filter.language().isEmpty()) ? filter.language() : null;
-        String relationFilter = filter.property() != null ? filter.property().name() : null;
 
         return repository.findFilteredSnippets(
                 nameFilter,

@@ -1,11 +1,8 @@
-package com.ingsis.snippetManager.intermediate;
+package com.ingsis.snippetManager.intermediate.permissions;
 
 import java.util.List;
 import java.util.UUID;
 
-import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
-import com.ingsis.snippetManager.intermediate.permissions.CreatePermission;
-import com.ingsis.snippetManager.intermediate.permissions.FilterDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -42,12 +39,12 @@ public class UserPermissionService {
     }
     public List<UUID> getUserSnippets(String userId, AuthorizationActions action) {
         try {
-            FilterDTO filterDTO =
-                    new FilterDTO(AuthorizationActions.valueOf(action.name()));
+            PermissionDTO permissionDTO =
+                    new PermissionDTO(action,userId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<FilterDTO> request = new HttpEntity<>(filterDTO, headers);
+            HttpEntity<PermissionDTO> request = new HttpEntity<>(permissionDTO, headers);
 
             ResponseEntity<List<UUID>> response = restTemplate.exchange(
                     authorizationServiceUrl + "/permissions/getSnippets?userId=" + userId,
@@ -87,7 +84,25 @@ public class UserPermissionService {
             HttpEntity<UUID> request = new HttpEntity<>(snippetId, headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    authorizationServiceUrl + "/permissions?userId=" + userId,
+                    authorizationServiceUrl + "/permissions/delete?userId=" + userId,
+                    HttpMethod.DELETE,
+                    request,
+                    String.class);
+
+            return ResponseEntity.ok().body(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
+    public ResponseEntity<String> deleteSnippetUserAuthorization(UUID snippetId) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<UUID> request = new HttpEntity<>(snippetId, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    authorizationServiceUrl + "/permissions?snippetId=" + snippetId,
                     HttpMethod.DELETE,
                     request,
                     String.class);
