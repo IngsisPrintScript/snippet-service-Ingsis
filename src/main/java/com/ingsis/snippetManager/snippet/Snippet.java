@@ -40,6 +40,10 @@ public class Snippet {
     @Enumerated(EnumType.STRING)
     private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_LINTED;
 
+    private String contentUrl;
+
+    private String snippetOwnerId;
+
 
     public Snippet() {
     }
@@ -121,8 +125,29 @@ public class Snippet {
     public void setVersion(String version) {
         this.version = version;
     }
-
+/*
     public void setSnippetOwnerId(String snippetOwnerId) {
+        this.snippetOwnerId = snippetOwnerId;
+    }*/
+
+    public String getContentUrl() {
+        return contentUrl;
+    }
+
+    public void setContentUrl(String contentUrl) {
+        this.contentUrl = contentUrl;
+    }
+
+    public String getSnippetOwnerId() {
+        return snippetOwnerId;
+    }
+
+    public Snippet(String name, String description, String language, String version, String contentUrl, String snippetOwnerId) {
+        this.name = name;
+        this.description = description;
+        this.language = language;
+        this.version = version;
+        this.contentUrl = contentUrl;
         this.snippetOwnerId = snippetOwnerId;
     }
 }

@@ -51,20 +51,20 @@ public class SnippetService {
         return result;
     }
 
-    public ValidationResult updateSnippet(UUID id, Snippet updatedSnippet, String snippetOwnerId) {
-        Snippet existingSnippet = repository
-                .findByIdAndSnippetOwnerId(id, snippetOwnerId)
-                .orElseThrow(() -> new RuntimeException("Snippet not found"));
-        // ValidationResult result = parserClient.validate(updatedSnippet.content());
+    public ValidationResult updateSnippet(UUID id, Snippet updatedSnippet, String content) {
+        Snippet existingSnippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
+        // ValidationResult result = parserClient.validate(content);
         ValidationResult result = new ValidationResult(true, "let name:String = \"Pepe\";");
         if (result.isValid()) {
-            // Actualizar campos del snippet existente
+            // Update fields of the existing snippet
             existingSnippet.setName(updatedSnippet.getName());
             existingSnippet.setDescription(updatedSnippet.getDescription());
             existingSnippet.setLanguage(updatedSnippet.getLanguage());
             existingSnippet.setVersion(updatedSnippet.getVersion());
             existingSnippet.setContentUrl(updatedSnippet.getContentUrl());
             repository.save(existingSnippet);
+            // Persist content to storage
+            uploadSnippetContent(id, content);
         }
         return result;
     }

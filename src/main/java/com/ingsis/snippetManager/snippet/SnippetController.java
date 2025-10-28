@@ -75,6 +75,7 @@ public class SnippetController {
                             saved.getMessage(), saved.getLine(), saved.getColumn());
             return ResponseEntity.unprocessableEntity().body(errorMsg);
         }
+    return ResponseEntity.ok(saved);
     }
 
     private static String getOwnerId(Jwt jwt) {

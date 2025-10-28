@@ -19,6 +19,11 @@ public class Converter {
                 ownerId);
     }
 
+    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO) {
+        return new Snippet(
+                snippetDTO.name(), snippetDTO.description(), snippetDTO.language(), snippetDTO.version());
+    }
+
     public Snippet convertFileToSnippet(RequestFileDTO fileDTO) {
         return new Snippet(
                 fileDTO.name(), fileDTO.description(), fileDTO.language(), fileDTO.version());
