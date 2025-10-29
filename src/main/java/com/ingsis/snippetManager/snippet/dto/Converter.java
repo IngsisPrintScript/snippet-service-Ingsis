@@ -9,12 +9,19 @@ import java.util.UUID;
 
 public class Converter {
 
-    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO){
+    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO, String contentUrl, String ownerId) {
         return new Snippet(
                 snippetDTO.name(),
                 snippetDTO.description(),
                 snippetDTO.language(),
-                snippetDTO.version());
+                snippetDTO.version(),
+                contentUrl,
+                ownerId);
+    }
+
+    public Snippet convertToSnippet(RequestSnippetDTO snippetDTO) {
+        return new Snippet(
+                snippetDTO.name(), snippetDTO.description(), snippetDTO.language(), snippetDTO.version());
     }
 
     public Snippet convertFileToSnippet(RequestFileDTO fileDTO) {

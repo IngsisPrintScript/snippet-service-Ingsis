@@ -98,7 +98,8 @@ public class SnippetTestingController {
     }
 
     private static String getOwnerId(Jwt jwt) {
-        return jwt.getClaimAsString("sub");
+        // Development mode: allow missing JWT and use a fallback owner id
+        return jwt != null ? jwt.getClaimAsString("sub") : "dev-user";
     }
 
 }
