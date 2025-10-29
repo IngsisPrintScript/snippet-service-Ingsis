@@ -2,6 +2,7 @@ package com.ingsis.snippetManager.intermediate.lint;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.lint.LintRequestProducer;
@@ -116,5 +117,9 @@ public class LintingService {
             );
             lintRequestProducer.publish(event);
         }
+    }
+
+    public List<Snippet> getAllSnippetByOwner(List<UUID> snippetsId){
+        return snippetRepo.findAllById(snippetsId);
     }
 }

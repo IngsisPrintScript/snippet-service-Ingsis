@@ -182,4 +182,8 @@ public class TestingService {
         logger.info("Url: {}",url);
         ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestRunResultDTO.class).getBody());
     }
+
+    public List<Snippet> getAllSnippetByOwner(List<UUID> snippetsId){
+        return snippetRepo.findAllById(snippetsId);
+    }
 }

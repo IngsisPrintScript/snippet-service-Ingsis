@@ -1,12 +1,16 @@
 package com.ingsis.snippetManager.snippet.controllers.format;
 
 import com.ingsis.snippetManager.intermediate.format.FormatService;
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
+import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
+import com.ingsis.snippetManager.snippet.dto.format.GetSnippetFormatStatusDTO;
 import com.ingsis.snippetManager.snippet.dto.format.SnippetValidFormatDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.GetSnippetLintingStatusDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
 import org.slf4j.Logger;
@@ -26,15 +30,15 @@ public class SnippetFormatController {
 
     private final FormatService formatService;
     private final SnippetController snippetController;
-    private final SnippetRepo snippetRepo;
+    private final UserPermissionService userPermissionService;
 
     public SnippetFormatController(
             FormatService formatService,
             SnippetController snippetController,
-            SnippetRepo snippetRepo) {
+            UserPermissionService userPermissionService) {
         this.formatService = formatService;
         this.snippetController = snippetController;
-        this.snippetRepo = snippetRepo;
+        this.userPermissionService = userPermissionService;
     }
 
     @GetMapping("/{snippetId}")
@@ -85,16 +89,20 @@ public class SnippetFormatController {
     @GetMapping("/snippets/format-status")
     public ResponseEntity<List<SnippetValidFormatDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<Snippet> snippets = snippetRepo.findAll();
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<Snippet> snippets = formatService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetValidFormatDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidFormatDTO(snippet, snippet.getFormatStatus()))
                 .toList();
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/status/{userId}")
-    public List<Snippet> getFormatStatus(@PathVariable String userId) {
-        return snippetRepo.findAll();
+    @GetMapping("/status")
+    public ResponseEntity<List<GetSnippetFormatStatusDTO>> getFormatStatus(@AuthenticationPrincipal Jwt jwt) {
+        String userId = getString(jwt);
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<Snippet> snippets = formatService.getAllSnippetByOwner(snippetsOwner);
+        return ResponseEntity.ok(snippets.stream().map(snippet -> new GetSnippetFormatStatusDTO(snippet.getId(), snippet.getFormatStatus())).toList());
     }
 
     private static String getString(Jwt jwt) {

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class FormatService {
@@ -102,5 +103,9 @@ public class FormatService {
             );
             formatRequestProducer.publish(event);
         }
+    }
+
+    public List<Snippet> getAllSnippetByOwner(List<UUID> ownerIds) {
+        return snippetRepo.findAllById(ownerIds);
     }
 }

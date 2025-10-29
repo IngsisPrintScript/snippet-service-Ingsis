@@ -4,7 +4,6 @@ import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
 import com.ingsis.snippetManager.snippet.Snippet;
-import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +18,10 @@ import java.util.UUID;
 @RequestMapping("/test")
 public class SnippetTestingController {
 
-    private final SnippetRepo snippetRepo;
     private final TestingService testingService;
     private final UserPermissionService userService;
 
-    public SnippetTestingController(SnippetRepo snippetRepo, TestingService testingService, UserPermissionService userService) {
-        this.snippetRepo = snippetRepo;
+    public SnippetTestingController(TestingService testingService, UserPermissionService userService) {
         this.testingService = testingService;
         this.userService = userService;
     }
@@ -82,8 +79,8 @@ public class SnippetTestingController {
     @GetMapping("/snippets/test-status")
     public ResponseEntity<List<SnippetTestsStatusDTO>> getTestsStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
-        List<Snippet> snippets = snippetRepo.findAll();
-
+        List<UUID> snippetsOwner = userService.getUserSnippets(userId,AuthorizationActions.ALL);
+        List<Snippet> snippets = testingService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetTestsStatusDTO> response = snippets.stream()
                 .map(snippet -> new SnippetTestsStatusDTO(
                         snippet.getId(),

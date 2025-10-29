@@ -2,14 +2,12 @@ package com.ingsis.snippetManager.snippet.controllers.linter;
 
 
 import com.ingsis.snippetManager.intermediate.lint.LintingService;
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
+import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
-import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.Result;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.*;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetContentDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +26,16 @@ public class SnippetLintingController {
 
     private final LintingService lintingService;
     private final SnippetController snippetController;
-    private final SnippetRepo snippetRepo;
+    private final UserPermissionService userPermissionService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetLintingController.class);
 
     public SnippetLintingController(
             LintingService lintingService,
             SnippetController snippetController,
-            SnippetRepo snippetRepo) {
+            UserPermissionService userPermissionService) {
         this.lintingService = lintingService;
         this.snippetController = snippetController;
-        this.snippetRepo = snippetRepo;
+        this.userPermissionService = userPermissionService;
     }
 
     @GetMapping("/validate/{snippetId}")
@@ -108,16 +106,20 @@ public class SnippetLintingController {
     @GetMapping("/snippets/lint-status")
     public ResponseEntity<List<SnippetValidLintingDTO>> getLintStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<Snippet> snippets = snippetRepo.findAll();
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<Snippet> snippets = lintingService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetValidLintingDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidLintingDTO(snippet, snippet.getLintStatus()))
                 .toList();
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/status/{userId}")
-    public List<Snippet> getLintStatus(@PathVariable String userId) {
-        return snippetRepo.findAll();
+    @GetMapping("/status")
+    public ResponseEntity<List<GetSnippetLintingStatusDTO>> getLintStatus(@AuthenticationPrincipal Jwt jwt) {
+        String userId = getString(jwt);
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<Snippet> snippets = lintingService.getAllSnippetByOwner(snippetsOwner);
+        return ResponseEntity.ok(snippets.stream().map(snippet -> new GetSnippetLintingStatusDTO(snippet.getId(), snippet.getLintStatus())).toList());
     }
 
     private static String getString(Jwt jwt) {
