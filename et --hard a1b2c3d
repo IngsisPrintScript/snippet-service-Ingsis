@@ -1,0 +1,44 @@
+[33m7a1a528[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/ui-integration[m[33m, [m[1;32mui-integration[m[33m)[m Merged
+[33m8d32ed3[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Implemented the status
+[33mf5dc079[m liquided the share user case
+[33me3784e2[m Implemented the cors
+[33mee03bc9[m Fixes
+[33m8dcc4b0[m build fixes
+[33m5aceb61[m Merge branch 'main' into ui-integration
+[33m6ec6c33[m changes to support ownerId and improve management
+[33m7626351[m added abstraction of env variables from .env
+[33m95870a5[m add ownerId parameter to convertToSnippet method for  snippet creation
+[33mb1066ee[m allow fallback owner id in development mode for JWT claims (for UI testing)
+[33mb0044bd[m parameterize Redis connection settings using environment variables
+[33m5360830[m changes to allow all requests (temporarily) and add CORS support for ui testing
+[33mf38e186[m updated docker compose to include redis and azure config
+[33m6e014ce[m abstract env variables from .env
+[33m312ef36[m Implemented the getTestBySnippet
+[33ma13588a[m Implemented the deletes
+[33m1787bbb[m Merge branch 'main' of https://github.com/IngsisPrintScript/snippet-service-Ingsis
+[33m0a5d0d2[m Implemented the deletes
+[33m9022231[m Implemented the permission and the delete
+[33meedd3f4[m Implemented Bruno
+[33meec7b1e[m Delete gradle.properties
+[33maa936c4[m Bruno added
+[33m94c5d28[m[33m ([m[1;31morigin/dev[m[33m)[m Added smt?
+[33m080c3a6[m Implemented testing
+[33m82af201[m Implemented formatter
+[33m260e2b9[m started formatter
+[33m6b5c74d[m liquidado snippetLinting
+[33mec74c76[m Implemented the lintern and reduced the controller
+[33me3cafdf[m Implemented the lintern and reduced the controller
+[33m28bdc99[m Added two user stories
+[33mb0699c0[m Fixed user stories
+[33m36b33ed[m Implemented the userSTory 8 and test
+[33m6a69b27[m Deleted tempraly the test
+[33mf1d3927[m .
+[33m2f56ce8[m Modified workflow
+[33m04af2e9[m merged
+[33me0a0f22[m Fixed the build
+[33m446576a[m modified
+[33m98efdaa[m Delete .env
+[33m7dbb757[m Update .gitignore
+[33m2c28507[m Modified the README
+[33m958846d[m Setup the SnippetService and implemented the firsts User Story
+[33m839ff66[m Initial commit
