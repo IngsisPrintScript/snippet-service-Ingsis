@@ -1,9 +1,12 @@
 package com.ingsis.snippetManager.snippet.controllers.testing;
 
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
+import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,10 +21,12 @@ public class SnippetTestingController {
 
     private final SnippetRepo snippetRepo;
     private final TestingService testingService;
+    private final UserPermissionService userService;
 
-    public SnippetTestingController(SnippetRepo snippetRepo, TestingService testingService) {
+    public SnippetTestingController(SnippetRepo snippetRepo, TestingService testingService, UserPermissionService userService) {
         this.snippetRepo = snippetRepo;
         this.testingService = testingService;
+        this.userService = userService;
     }
 
     @PostMapping("/create")
@@ -52,9 +57,15 @@ public class SnippetTestingController {
     }
 
     @GetMapping("/{snippetId}")
-    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@PathVariable  UUID snippetId) {
+    public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID snippetId) {
         String userId = getOwnerId(jwt);
-        return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
+        if(userService.getUserSnippets(userId, AuthorizationActions.ALL).contains(snippetId)) {
+            return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
+        }
+        if(userService.getUserSnippets(userId, AuthorizationActions.READ).contains(snippetId)){
+            return testingService.getTestsBySnippetId(snippetId);
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     @PostMapping("/run/{snippetId}")
     public ResponseEntity<Void> runSingleTest(

@@ -85,6 +85,32 @@ public class TestingService {
         }
     }
 
+    public ResponseEntity<List<GetTestDTO>> getTestsBySnippetId(UUID snippetId) {
+        try {
+            logger.info("Fetching tests for snippet {}", snippetId);
+            String url = testingServiceUrl + "/getSnippetTests?snippetId=" + snippetId;
+            logger.info("GET request to {}", url);
+
+            ResponseEntity<List<GetTestDTO>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<List<GetTestDTO>>() {}
+            );
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return ResponseEntity.ok(response.getBody());
+            } else {
+                logger.warn("No tests found for snippet {}", snippetId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(null);
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching tests for snippet {}: {}", snippetId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+    }
+
     public ResponseEntity<String> deleteTest(String userId, UUID snippetId) {
         try {
             logger.info("Deleting test {} for user {}", snippetId, userId);

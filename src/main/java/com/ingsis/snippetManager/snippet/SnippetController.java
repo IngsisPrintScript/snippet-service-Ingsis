@@ -215,11 +215,10 @@ public class SnippetController {
 
     @PutMapping("/{snippetId}/share")
     public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody PermissionDTO shareSnippetDTO,@PathVariable UUID snippetId) {
-        if(!userPermissionService.getUserSnippets(jwt.getSubject(),AuthorizationActions.ALL).contains(snippetId)){
+        if(!userPermissionService.getUserSnippets(getOwnerId(jwt),AuthorizationActions.ALL).contains(snippetId)){
             return ResponseEntity.unprocessableEntity().body("Not Authorized to modify snippet");
         }
-        ResponseEntity<String> response = userPermissionService.createUser(shareSnippetDTO.userName(),AuthorizationActions.READ,snippetId);
-        return response;
+        return userPermissionService.createUser(shareSnippetDTO.userId(),AuthorizationActions.READ,snippetId);
     }
 
     private Snippet getSnippetFromFile(RequestFileDTO fileDTO){
