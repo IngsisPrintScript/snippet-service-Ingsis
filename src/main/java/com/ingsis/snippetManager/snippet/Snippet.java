@@ -11,19 +11,16 @@ import java.util.*;
 public class Snippet {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @NotBlank
     private String name;
 
-    @NotBlank
     private String description;
 
     @NotBlank
     private String language;
 
-    @NotBlank
     private String version;
 
     @ElementCollection
@@ -38,7 +35,7 @@ public class Snippet {
     private SnippetLintStatus lintStatus = SnippetLintStatus.NOT_LINTED;
 
     @Enumerated(EnumType.STRING)
-    private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_LINTED;
+    private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_FORMAT;
 
 
     public Snippet() {

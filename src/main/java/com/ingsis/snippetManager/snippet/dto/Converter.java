@@ -11,6 +11,7 @@ public class Converter {
 
     public Snippet convertToSnippet(RequestSnippetDTO snippetDTO){
         return new Snippet(
+                UUID.randomUUID(),
                 snippetDTO.name(),
                 snippetDTO.description(),
                 snippetDTO.language(),
@@ -18,7 +19,7 @@ public class Converter {
     }
 
     public Snippet convertFileToSnippet(RequestFileDTO fileDTO) {
-        return new Snippet(
+        return new Snippet(UUID.randomUUID(),
                 fileDTO.name(), fileDTO.description(), fileDTO.language(), fileDTO.version());
     }
 }

@@ -6,6 +6,8 @@ plugins {
 	id 'checkstyle'
 	id 'com.diffplug.spotless' version '6.25.0'
     id 'org.jetbrains.kotlin.jvm'
+	id "de.undercouch.download" version "5.3.0"
+
 }
 
 group = 'com.ingsis'
@@ -61,6 +63,17 @@ tasks.named('test') {
 	finalizedBy tasks.jacocoTestReport
 }
 
+task downloadNewrelic(type: Download) {
+	mkdir 'newrelic'
+	src 'https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip'
+	dest file('newrelic/newrelic-java.zip')
+}
+
+task unzipNewrelic(type: Copy) {
+	from zipTree(file('newrelic/newrelic-java.zip'))
+	into file('newrelic/extracted')
+}
+
 jacoco {
 	toolVersion = "0.8.10"
 }
@@ -73,6 +86,11 @@ jacocoTestReport {
 	}
 }
 
+bootRun {
+	jvmArgs = [
+			"-javaagent:${projectDir}/newrelic/extracted/newrelic.jar"
+	]
+}
 //spotless {
 //	java {
 ////		googleJavaFormat()

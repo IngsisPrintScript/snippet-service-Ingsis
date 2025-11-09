@@ -3,7 +3,6 @@ package com.ingsis.snippetManager.redis.lint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ingsis.snippetManager.redis.lint.dto.LintResultEvent;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.controllers.linter.SnippetLintingController;
 import jakarta.annotation.PreDestroy;
 import org.austral.ingsis.redis.RedisStreamConsumer;
 import org.jetbrains.annotations.NotNull;

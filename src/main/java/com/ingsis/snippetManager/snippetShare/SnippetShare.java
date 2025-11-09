@@ -19,16 +19,12 @@ public class SnippetShare {
     @NotBlank
     private String sharedWithUserId;
 
-    @NotBlank
-    private boolean canRead = true;
-
     public SnippetShare() {
     }
 
-    public SnippetShare(Snippet snippet, String sharedWithUserId, boolean canRead) {
+    public SnippetShare(Snippet snippet, String sharedWithUserId) {
         this.snippet = snippet;
         this.sharedWithUserId = sharedWithUserId;
-        this.canRead = canRead;
     }
 
     public UUID getId() {
@@ -47,7 +43,4 @@ public class SnippetShare {
         return sharedWithUserId;
     }
 
-    public boolean isCanRead() {
-        return canRead;
-    }
 }

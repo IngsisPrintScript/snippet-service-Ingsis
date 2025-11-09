@@ -13,24 +13,17 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SnippetRepo extends JpaRepository<Snippet, UUID> {
 
-//    @Query(
-//            """
-//                      SELECT s FROM Snippet s
-//                      LEFT JOIN SnippetShare ss ON ss.snippet = s
-//                      WHERE s.ownersId = :userId OR ss.sharedWithUserId = :userId
-//                    """)
-//    List<Snippet> findAllAccessibleByUserId(@Param("userId") String userId);
-
     @Query("""
-                SELECT DISTINCT s
-                FROM Snippet s
-                WHERE(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%')))
-                AND (:language IS NULL OR LOWER(s.language) = LOWER(:language))
-            
-            """)
+    SELECT DISTINCT s
+    FROM Snippet s
+    WHERE (:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:language IS NULL OR LOWER(s.language) = LOWER(:language))
+      AND (:ids IS NULL OR s.id IN :ids)
+    """)
     List<Snippet> findFilteredSnippets(
             @Param("name") String name,
             @Param("language") String language,
+            @Param("ids") List<UUID> ids,
             Sort sort
     );
 }

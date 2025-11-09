@@ -35,18 +35,6 @@ public class AssetService {
         }
     }
 
-    public ResponseEntity<String> updateSnippet(UUID snippetId, String content) {
-        try {
-            HttpEntity<String> request = new HttpEntity<>(content, getHeaders());
-            restTemplate.put(bucketUrl + "/" + snippetId.toString(), request);
-            return ResponseEntity.ok("Snippet updated successfully.");
-        } catch (HttpClientErrorException e) {
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error updating snippet: " + e.getMessage());
-        }
-    }
-
     public ResponseEntity<String> getSnippet(UUID snippetId) {
         try {
             return restTemplate.getForEntity(bucketUrl + "/" + snippetId.toString(), String.class);
@@ -58,7 +46,7 @@ public class AssetService {
     public ResponseEntity<String> deleteSnippet(UUID snippetId) {
         try {
             restTemplate.delete(bucketUrl + "/" + snippetId.toString());
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok("Snippet deleted successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

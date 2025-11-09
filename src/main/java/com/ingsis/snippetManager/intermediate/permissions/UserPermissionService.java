@@ -20,10 +20,11 @@ public class UserPermissionService {
         this.authorizationServiceUrl = authServiceUrl;
     }
 
-    public ResponseEntity<String> createUser(String userId, AuthorizationActions action, UUID snippetId) {
+    public ResponseEntity<String> createUser(String userId, AuthorizationActions user_action, UUID snippetId) {
         try {
+            AuthorizationActions action = AuthorizationActions.valueOf(user_action.name());
             CreatePermission createPermission =
-                    new CreatePermission(userId, snippetId, AuthorizationActions.valueOf(action.name()));
+                    new CreatePermission(userId,snippetId,action);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

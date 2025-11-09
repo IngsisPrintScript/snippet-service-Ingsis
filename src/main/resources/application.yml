@@ -46,4 +46,4 @@ bucket:
 
 azure:
   storage:
-    connection-string: DefaultEndpointsProtocol=https;AccountName=${AZURE_STORAGE_ACCOUNT_NAME};AccountKey=${AZURE_STORAGE_ACCOUNT_KEY};BlobEndpoint=${AZURE_STORAGE_BLOB_ENDPOINT}
+    connection-string: DefaultEndpointsProtocol=http;AccountName=${AZURE_STORAGE_ACCOUNT_NAME:devstoreaccount1};AccountKey=${AZURE_STORAGE_ACCOUNT_KEY};BlobEndpoint=${AZURE_STORAGE_BLOB_ENDPOINT:http://azurite:10000/devstoreaccount1}

@@ -70,7 +70,7 @@ public class FormatService {
             }
             String newContent = response.getBody().content();
             if (!newContent.equals(content)) {
-                assetService.updateSnippet(snippet.getId(), newContent);
+                assetService.saveSnippet(snippet.getId(), newContent);
             }
             snippetRepo.save(snippet);
             return SnippetFormatStatus.PASSED;
