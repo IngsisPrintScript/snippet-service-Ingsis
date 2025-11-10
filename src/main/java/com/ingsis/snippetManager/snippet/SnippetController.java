@@ -128,7 +128,7 @@ public class SnippetController {
     }
 
     // Filter Snippets
-    @GetMapping("/filter")
+    @PostMapping("/filter")
     public ResponseEntity<?> getSnippets(
             @AuthenticationPrincipal Jwt jwt, @RequestBody SnippetFilterDTO filterDTO) {
         try {
