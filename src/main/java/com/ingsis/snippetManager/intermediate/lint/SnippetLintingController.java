@@ -7,7 +7,6 @@ import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.*;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetContentDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -45,13 +44,7 @@ public class SnippetLintingController {
         try {
             String ownerId = getString(jwt);
             logger.info("Validating linting for snippet {} by user {}", snippetId, ownerId);
-            SnippetContentDTO contentDTO = (snippetController.getSnippet(jwt, snippetId)).getBody();
-            logger.info("SnippetDTO exist? {}", contentDTO != null);
-            if (contentDTO == null) {
-                return ResponseEntity.badRequest().build();
-            }
-            ;
-            SnippetLintStatus passes = lintingService.validLinting(contentDTO.content(), ownerId);
+            SnippetLintStatus passes = lintingService.validLinting(snippetId, ownerId);
             return ResponseEntity.ok(passes);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -66,11 +59,7 @@ public class SnippetLintingController {
     ) {
         try {
             String ownerId = getString(jwt);
-            SnippetContentDTO snippetUrl = snippetController.getSnippet(jwt, snippetId).getBody();
-            if (snippetUrl == null) {
-                return ResponseEntity.badRequest().build();
-            }
-            return lintingService.failedLinting(snippetUrl.content(), ownerId);
+            return lintingService.failedLinting(snippetId, ownerId);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

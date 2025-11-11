@@ -83,17 +83,18 @@ public class SnippetService {
 
     public List<Snippet> getSnippetsBy(String subject, SnippetFilterDTO filter) {
         Sort sort = Sort.unsorted();
+        logger.info("snippets unsorted");
         if (filter.sortBy() != null && filter.order() != null) {
             Sort.Direction direction =
                     (filter.order() == Order.DESC) ? Sort.Direction.DESC : Sort.Direction.ASC;
-
+            logger.info("Sort by direction {}", direction);
             String sortField = switch (filter.sortBy()) {
                 case LANGUAGE -> "language";
                 case NAME -> "name";
                 case VALID -> "";
             };
-
             if (!sortField.isEmpty()) {
+                logger.info("Sort by {}", sortField);
                 sort = Sort.by(direction, sortField);
             }
         }
@@ -102,12 +103,14 @@ public class SnippetService {
                 (filter.language() == null || filter.language().isEmpty()) &&
                 filter.valid() == null &&
                 filter.property() == null;
+        logger.info("noFilters {}", noFilters);
         if (noFilters) {
             return getAllSnippetsByOwner(subject, Property.OWNER);
         }
         String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name() : null;
         String languageFilter = (filter.language() != null && !filter.language().isEmpty()) ? filter.language() : null;
         List<UUID> uuids = getAllUuids(subject, filter.property());
+        logger.info("uuids {}", uuids);
         return repository.findFilteredSnippets(
                 nameFilter,
                 languageFilter,
@@ -119,7 +122,9 @@ public class SnippetService {
     public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO, String snippetOwnerId) {
         List<SnippetValidLintingDTO> validatedSnippets = new ArrayList<>();
         for (Snippet snippet : snippets) {
-            SnippetLintStatus linting = lintingService.validLinting(assetService.getSnippet(snippet.getId()).getBody(), snippetOwnerId);
+            logger.info("Validating snippet {}", snippet.getName());
+            SnippetLintStatus linting = lintingService.validLinting(snippet.getId(), snippetOwnerId);
+            logger.info("linting status {}", linting);
             if (filterDTO.valid() != null) {
                 if (filterDTO.valid() == linting) {
                     validatedSnippets.add(new SnippetValidLintingDTO(snippet, linting));
@@ -130,7 +135,6 @@ public class SnippetService {
         }
         return validatedSnippets;
     }
-
 
 
     public String downloadSnippetContent(UUID snippetId) {
@@ -181,8 +185,8 @@ public class SnippetService {
         return userPermissionService.deleteSnippetUserAuthorization(id);
     }
 
-    public ResponseEntity<String> deleteTest(String userId,UUID id){
-        return testingService.deleteTest(userId, id);
+    public ResponseEntity<String> deleteTest(UUID id,String jwt){
+        return testingService.deleteTestsBySnippet(id,jwt);
     }
 
     public Snippet getSnippetById(UUID id) {
@@ -194,12 +198,18 @@ public class SnippetService {
     }
 
     public List<Snippet> getAllSnippetsByOwner(String subject, Property property) {
+        logger.info("Get all snippets by owner {} with property {}", subject,property);
         List<UUID> uuids = getAllUuids(subject, property);
+        logger.info("All uuids: {}", uuids);
         return repository.findAllById(uuids);
     }
 
+    public List<Snippet> getSnippetByName(String name) {
+        return repository.findByName(name);
+    }
+
     public void runAllTestsForSnippet(String subject, UUID snippetId) {
-        testingService.runAllTestsForSnippet(subject, snippetId);
+        testingService.runAllTestsForSnippet(snippetId);
     }
 
 }

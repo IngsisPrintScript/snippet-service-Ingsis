@@ -26,4 +26,6 @@ public interface SnippetRepo extends JpaRepository<Snippet, UUID> {
             @Param("ids") List<UUID> ids,
             Sort sort
     );
+
+    List<Snippet> findByName(String name);
 }

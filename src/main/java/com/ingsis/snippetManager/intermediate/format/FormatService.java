@@ -7,7 +7,8 @@ import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.dto.format.FormatResult;
+import com.ingsis.snippetManager.snippet.dto.Status;
+import com.ingsis.snippetManager.snippet.dto.format.StatusResult;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
@@ -57,23 +58,17 @@ public class FormatService {
 
     public SnippetFormatStatus formatContent(Snippet snippet, String ownerId) {
         try {
-            String content = assetService.getSnippet(snippet.getId()).getBody();
             logger.info("Evaluating snippet for user {}", ownerId);
-            EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
+            EvaluateSnippet request = new EvaluateSnippet(snippet.getId(), ownerId);
             logger.info("Created the request: {}", request);
             String url = formatServiceUrl + "/format";
             logger.info("Evaluating at url: {}", url);
-            ResponseEntity<FormatResult> response =
-                    restTemplate.postForEntity(url, request, FormatResult.class);
-            if(response.getBody() == null || response.getBody().content().isEmpty()){
+            ResponseEntity<StatusResult> response =
+                    restTemplate.postForEntity(url, request, StatusResult.class);
+            if(response.getBody() != null || response.getBody().status().equals(Status.PASSED)){
                 return SnippetFormatStatus.PASSED;
             }
-            String newContent = response.getBody().content();
-            if (!newContent.equals(content)) {
-                assetService.saveSnippet(snippet.getId(), newContent);
-            }
-            snippetRepo.save(snippet);
-            return SnippetFormatStatus.PASSED;
+            return SnippetFormatStatus.FAILED;
         } catch (Exception e) {
             return SnippetFormatStatus.FAILED;
         }
@@ -94,12 +89,10 @@ public class FormatService {
         for (Snippet snippet : snippets) {
             snippet.setLintStatus(SnippetLintStatus.PENDING);
             logger.info("Format snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
-            String content = assetService.getSnippet(snippet.getId()).getBody();
             FormatRequestEvent event = new FormatRequestEvent(
                     userId,
                     snippet.getId(),
-                    snippet.getLanguage(),
-                    content
+                    snippet.getLanguage()
             );
             formatRequestProducer.publish(event);
         }

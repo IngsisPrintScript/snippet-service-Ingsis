@@ -2,6 +2,8 @@ package com.ingsis.snippetManager.intermediate.testing;
 
 import com.azure.core.exception.ResourceNotFoundException;
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
+import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
+import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.redis.testing.TestRequestProducer;
 import com.ingsis.snippetManager.redis.testing.dto.TestRequestEvent;
 import com.ingsis.snippetManager.snippet.Snippet;
@@ -11,9 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,132 +27,141 @@ public class TestingService {
     private final RestTemplate restTemplate;
     private final String testingServiceUrl;
     private final SnippetRepo snippetRepo;
-    private final AssetService assetService;
     private final TestRequestProducer testRequestProducer;
+    private final UserPermissionService userPermissionService;
     private static final Logger logger = LoggerFactory.getLogger(TestingService.class);
 
 
-    public TestingService(@Value("http://localhost:8084/test") String testingServiceUrl, SnippetRepo snippetRepo, AssetService assetService, TestRequestProducer testRequestProducer) {
+    public TestingService(@Value("http://localhost:8084/test") String testingServiceUrl, SnippetRepo snippetRepo, TestRequestProducer testRequestProducer, UserPermissionService userPermissionService) {
         this.restTemplate = new RestTemplate();
         this.testingServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
-        this.assetService = assetService;
         this.testRequestProducer = testRequestProducer;
+        this.userPermissionService = userPermissionService;
     }
 
-    public ResponseEntity<GetTestDTO> createTest(String userId, CreateTestDTO createDTO) {
+    public ResponseEntity<GetTestDTO> createTest(TestDTO testDTO, String jwtToken) {
         try {
-            logger.info("Creating linting rules for user {}", userId);
-            String url = testingServiceUrl + "/create?userId=" + userId;
-            logger.info("Creating at url: {}", url);
-            return restTemplate.postForEntity(url, createDTO, GetTestDTO.class);
+            String url = testingServiceUrl + "/create";
+            logger.info("POST {}", url);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            logger.info("Outputs {}, inputs {}",testDTO.input(),testDTO.output());
+            HttpEntity<TestDTO> entity = new HttpEntity<>(testDTO, headers);
+            ResponseEntity<GetTestDTO> getTestDTO = restTemplate.exchange(url, HttpMethod.POST, entity, GetTestDTO.class);
+            logger.info("getTestDTO {}", getTestDTO.getBody());
+            Snippet snippet = snippetRepo.findById(testDTO.snippetId()).orElseThrow(NoSuchElementException::new);
+            logger.info("snippet {}", snippet.getId());
+            try {
+                logger.info("Body {}", getTestDTO.getBody() != null);
+                snippet.getTestId().add(getTestDTO.getBody().testId());
+                snippetRepo.save(snippet);
+                return getTestDTO;
+            }catch (NoSuchElementException e){
+                return ResponseEntity.notFound().build();
+            }
         } catch (Exception e) {
+            logger.error("Error creating test: {}", e.getMessage());
+            deleteParticularTest(testDTO.snippetId(), jwtToken);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    public ResponseEntity<?> updateTest(String userId, UpdateTestDTO rulesDTO) {
-        logger.info("Updating linting rules for user {}", userId);
-        String url = testingServiceUrl + "/update?userId=" + userId;
-        logger.info("Updating at url: {}", url);
-        restTemplate.put(url, rulesDTO);
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<List<GetTestDTO>> getTestsBySnippetIdAndTestOwner(String userId, UUID snippetId) {
+    public ResponseEntity<GetTestDTO> updateTest(UpdateDTO dto, String jwtToken) {
         try {
-            logger.info("Fetching tests for snippet {} and user {}", snippetId, userId);
-            String url = testingServiceUrl + "/getBySnippet?userId=" + userId + "&snippetId=" + snippetId;
-            logger.info("GET request to {}", url);
+            String url = testingServiceUrl + "/update";
+            logger.info("PUT {}", url);
 
-            ResponseEntity<List<GetTestDTO>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<List<GetTestDTO>>() {}
-            );
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return ResponseEntity.ok(response.getBody());
-            } else {
-                logger.warn("No tests found for snippet {} and user {}", snippetId, userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(null);
-            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<UpdateDTO> entity = new HttpEntity<>(dto, headers);
+
+            ResponseEntity<GetTestDTO> response = restTemplate.exchange(
+                    url, HttpMethod.PUT, entity, GetTestDTO.class);
+            return ResponseEntity.ok(response.getBody());
         } catch (Exception e) {
-            logger.error("Error fetching tests for snippet {} and user {}: {}", snippetId, userId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .build();
+            logger.error("Error updating test: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    public ResponseEntity<List<GetTestDTO>> getTestsBySnippetId(UUID snippetId) {
+    public ResponseEntity<List<GetTestDTO>> getTestsBySnippetId(UUID snippetId, String jwtToken) {
         try {
-            logger.info("Fetching tests for snippet {}", snippetId);
-            String url = testingServiceUrl + "/getSnippetTests?snippetId=" + snippetId;
-            logger.info("GET request to {}", url);
+            String url = testingServiceUrl + "?snippetId=" + snippetId;
+            logger.info("GET {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
 
             ResponseEntity<List<GetTestDTO>> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
-                    null,
+                    entity,
                     new ParameterizedTypeReference<List<GetTestDTO>>() {}
             );
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return ResponseEntity.ok(response.getBody());
-            } else {
-                logger.warn("No tests found for snippet {}", snippetId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(null);
-            }
+            return ResponseEntity.ok(response.getBody());
         } catch (Exception e) {
             logger.error("Error fetching tests for snippet {}: {}", snippetId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    public ResponseEntity<String> deleteTest(String userId, UUID snippetId) {
+    public ResponseEntity<String> deleteTestsBySnippet(UUID snippetId, String jwtToken) {
         try {
-            logger.info("Deleting test {} for user {}", snippetId, userId);
-            String url = testingServiceUrl + "/delete?userId=" + userId + "&testId=" + snippetId;
-            restTemplate.delete(url);
-            return ResponseEntity.ok("Test " + snippetId + " deleted successfully.");
-        } catch (ResourceNotFoundException e) {
-            logger.error("Test {} not found for user {}", snippetId, userId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Test not found: " + e.getMessage());
+            String url = testingServiceUrl + "/delete?snippetId=" + snippetId;
+            logger.info("DELETE {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+
+            return ResponseEntity.ok("Tests for snippet " + snippetId + " deleted successfully.");
         } catch (Exception e) {
-            logger.error("Error deleting test {} for user {}: {}", snippetId, userId, e.getMessage());
+            logger.error("Error deleting tests for snippet {}: {}", snippetId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error deleting test: " + e.getMessage());
+                    .body("Error deleting tests: " + e.getMessage());
         }
     }
 
-    public ResponseEntity<String> deleteParticularTest(String userId, UUID testId) {
+    public ResponseEntity<String> deleteParticularTest(UUID testId, String jwtToken) {
         try {
-            logger.info("Deleting test {} for user {}", testId, userId);
-            String url = testingServiceUrl + "?userId=" + userId + "&testId=" + testId;
-            restTemplate.delete(url);
+            String url = testingServiceUrl + "?testId=" + testId;
+            logger.info("DELETE {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+            Snippet snippet = snippetRepo.findById(findSnippetById(testId,jwtToken)).orElseThrow(NoSuchElementException::new);
+            snippet.getTestId().remove(testId);
+            snippetRepo.save(snippet);
             return ResponseEntity.ok("Test " + testId + " deleted successfully.");
         } catch (ResourceNotFoundException e) {
-            logger.error("Test {} not found for user {}", testId, userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Test not found: " + e.getMessage());
         } catch (Exception e) {
-            logger.error("Error deleting test {} for user {}: {}", testId, userId, e.getMessage());
+            logger.error("Error deleting test {}: {}", testId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error deleting test: " + e.getMessage());
         }
     }
 
-    public void runAllTestsForSnippet(String userId, UUID snippetId) {
+    public void runAllTestsForSnippet(UUID snippetId) {
         try {
             logger.info("Running all tests for snippet {}", snippetId);
             Snippet snippet = snippetRepo.findById(snippetId).orElseThrow();
             List<UUID> testsId = snippet.getTestId();
             for (UUID test : testsId) {
-                TestToRunDTO dto = new TestToRunDTO(test);
-                runTestCase(userId, dto, snippetId);
+                TestToRunDTO dto = new TestToRunDTO(test,snippetId);
+                runTestCase(dto, snippetId);
                 logger.info("Test {} sent", dto.testCaseId());
             }
         } catch (Exception e) {
@@ -161,29 +170,68 @@ public class TestingService {
         }
     }
 
-    public void runTestCase(String userId, TestToRunDTO dto, UUID snippetId) {
-        logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
+    public void runTestCase(TestToRunDTO dto, UUID snippetId) {
+        logger.info("Testing {} case ", dto.testCaseId());
         Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
-        String content = assetService.getSnippet(snippet.getId()).getBody();
         TestRequestEvent event = new TestRequestEvent(
-                userId,
                 snippetId,
-                snippet.getLanguage(),
-                content
+                snippet.getLanguage()
         );
         testRequestProducer.publish(event);
     }
 
-    public void runParticularTest(String userId, TestToRunDTO dto, UUID snippetId) {
-        logger.info("Testing {} case for user {}", dto.testCaseId(), userId);
-        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
-        String content = assetService.getSnippet(snippet.getId()).getBody();
-        String url = testingServiceUrl + "/run?userId=" + userId;
-        logger.info("Url: {}",url);
-        ResponseEntity.ok(restTemplate.postForEntity(url, new ParticularTestToRun(dto.testCaseId(), content), TestRunResultDTO.class).getBody());
+    public ResponseEntity<TestRunResultDTO> runParticularTest(TestToRunDTO dto, String jwtToken) {
+        try {
+            String url = testingServiceUrl + "/run";
+            logger.info("POST {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<TestToRunDTO> entity = new HttpEntity<>(dto, headers);
+
+            ResponseEntity<TestRunResultDTO> response =
+                    restTemplate.exchange(url, HttpMethod.POST, entity, TestRunResultDTO.class);
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            logger.error("Error running test {}: {}", dto.testCaseId(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     public List<Snippet> getAllSnippetByOwner(List<UUID> snippetsId){
         return snippetRepo.findAllById(snippetsId);
+    }
+
+    public boolean validateTest(String subject, UUID snippetId, AuthorizationActions authorizationActions) {
+        return !userPermissionService.getUserSnippets(subject, authorizationActions).contains(snippetId);
+    }
+
+    public List<UUID> getUserSnippets(String userId, AuthorizationActions authorizationActions) {
+        return userPermissionService.getUserSnippets(userId, authorizationActions);
+    }
+
+    public UUID findSnippetById(UUID testId, String jwtToken) {
+        try {
+            String url = testingServiceUrl + "/" + testId;
+            logger.info("GET {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwtToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<UUID> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    UUID.class
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            logger.error("Error fetching test {}: {}", testId, e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }

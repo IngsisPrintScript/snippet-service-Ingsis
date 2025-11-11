@@ -1,4 +1,6 @@
 package com.ingsis.snippetManager.snippet.dto.lintingDTO;
 
-public record EvaluateSnippet(String content, String ownerId) {
+import java.util.UUID;
+
+public record EvaluateSnippet(UUID snippetId, String ownerId) {
 }

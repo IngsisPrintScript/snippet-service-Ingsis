@@ -55,10 +55,10 @@ public class LintingService {
     }
 
 
-    public SnippetLintStatus validLinting(String content, String ownerId) {
+    public SnippetLintStatus validLinting(UUID snippetId, String ownerId) {
         try {
             logger.info("Evaluating snippet for user {}", ownerId);
-            EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
+            EvaluateSnippet request = new EvaluateSnippet(snippetId, ownerId);
             logger.info("Created the request: {}", request);
             String url = lintingServiceUrl + "/evaluate";
             logger.info("Evaluating at url: {}", url);
@@ -73,10 +73,10 @@ public class LintingService {
         }
     }
 
-    public ResponseEntity<List<Result>> failedLinting(String content, String ownerId) {
+    public ResponseEntity<List<Result>> failedLinting(UUID snippetId, String ownerId) {
         try {
             logger.info("Evaluating snippet for user {}", ownerId);
-            EvaluateSnippet request = new EvaluateSnippet(content, ownerId);
+            EvaluateSnippet request = new EvaluateSnippet(snippetId, ownerId);
             logger.info("Created the request: {}", request);
             String url = lintingServiceUrl + "/evaluate/pass";
             logger.info("Evaluating at url: {}", url);
@@ -112,8 +112,7 @@ public class LintingService {
             LintRequestEvent event = new LintRequestEvent(
                     userId,
                     snippet.getId(),
-                    snippet.getLanguage(),
-                    content
+                    snippet.getLanguage()
             );
             lintRequestProducer.publish(event);
         }

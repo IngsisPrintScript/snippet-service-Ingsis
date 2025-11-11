@@ -1,7 +1,6 @@
 package com.ingsis.snippetManager.intermediate.testing;
 
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
-import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.dto.testing.*;
 import org.springframework.http.HttpStatus;
@@ -18,29 +17,33 @@ import java.util.UUID;
 public class SnippetTestingController {
 
     private final TestingService testingService;
-    private final UserPermissionService userService;
 
-    public SnippetTestingController(TestingService testingService, UserPermissionService userService) {
+    public SnippetTestingController(TestingService testingService) {
         this.testingService = testingService;
-        this.userService = userService;
     }
 
     @PostMapping("/create")
     public ResponseEntity<GetTestDTO> createTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody CreateTestDTO createDTO
+            @RequestBody TestDTO createDTO
     ) {
         String userId = getOwnerId(jwt);
-        return testingService.createTest(userId, createDTO);
+        if(testingService.validateTest(userId,createDTO.snippetId(),AuthorizationActions.ALL)){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return testingService.createTest(createDTO,jwt.getTokenValue());
     }
 
     @PutMapping("/update")
     public ResponseEntity<?> updateTests(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody UpdateTestDTO updateDTO
+            @RequestBody UpdateDTO updateDTO
     ) {
         String userId = getOwnerId(jwt);
-        return testingService.updateTest(userId, updateDTO);
+        if(testingService.validateTest(userId,updateDTO.snippetId(),AuthorizationActions.ALL)){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return testingService.updateTest(updateDTO,jwt.getTokenValue());
     }
 
     @DeleteMapping("/{testId}")
@@ -49,36 +52,38 @@ public class SnippetTestingController {
             @PathVariable UUID testId
     ) {
         String userId = getOwnerId(jwt);
-        return testingService.deleteParticularTest(userId, testId);
+        if(testingService.validateTest(userId,testingService.findSnippetById(testId, jwt.getTokenValue()), AuthorizationActions.ALL)){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return testingService.deleteParticularTest(testId,jwt.getTokenValue());
     }
 
     @GetMapping("/{snippetId}")
     public ResponseEntity<List<GetTestDTO>> getTestBySnippetId(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID snippetId) {
         String userId = getOwnerId(jwt);
-        if(userService.getUserSnippets(userId, AuthorizationActions.ALL).contains(snippetId)) {
-            return testingService.getTestsBySnippetIdAndTestOwner(userId, snippetId);
+        if(testingService.validateTest(userId,snippetId,AuthorizationActions.ALL) || testingService.validateTest(userId,snippetId,AuthorizationActions.READ)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        if(userService.getUserSnippets(userId, AuthorizationActions.READ).contains(snippetId)){
-            return testingService.getTestsBySnippetId(snippetId);
-        }
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        return testingService.getTestsBySnippetId(snippetId,jwt.getTokenValue());
     }
-    @PostMapping("/run/{snippetId}")
-    public ResponseEntity<Void> runSingleTest(
+
+    @PostMapping("/run")
+    public ResponseEntity<TestRunResultDTO> runSingleTest(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID snippetId,
             @RequestBody TestToRunDTO testToRunDTO
     ) {
         String userId = getOwnerId(jwt);
-        testingService.runParticularTest(userId, testToRunDTO,snippetId);
-        return ResponseEntity.accepted().build();
+        if(testingService.validateTest(userId,testToRunDTO.snippetId(),AuthorizationActions.ALL) || testingService.validateTest(userId,testToRunDTO.snippetId(),AuthorizationActions.READ)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return testingService.runParticularTest(testToRunDTO,jwt.getTokenValue());
     }
 
 
     @GetMapping("/snippets/test-status")
     public ResponseEntity<List<SnippetTestsStatusDTO>> getTestsStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
-        List<UUID> snippetsOwner = userService.getUserSnippets(userId,AuthorizationActions.ALL);
+        List<UUID> snippetsOwner = testingService.getUserSnippets(userId, AuthorizationActions.ALL);
         List<Snippet> snippets = testingService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetTestsStatusDTO> response = snippets.stream()
                 .map(snippet -> new SnippetTestsStatusDTO(

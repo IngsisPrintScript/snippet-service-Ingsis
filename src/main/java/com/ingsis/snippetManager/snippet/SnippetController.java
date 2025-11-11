@@ -5,6 +5,8 @@ import com.ingsis.snippetManager.intermediate.permissions.PermissionDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.*;
 import com.ingsis.snippetManager.snippet.dto.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class SnippetController {
 
     private final SnippetService snippetService;
+    private static final Logger logger = LoggerFactory.getLogger(SnippetController.class);
 
 
     public SnippetController(
@@ -130,7 +133,7 @@ public class SnippetController {
     // Filter Snippets
     @PostMapping("/filter")
     public ResponseEntity<?> getSnippets(
-            @AuthenticationPrincipal Jwt jwt, @RequestBody SnippetFilterDTO filterDTO) {
+            @AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) SnippetFilterDTO filterDTO) {
         try {
             if (filterDTO == null) {
                 return ResponseEntity.ok(snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH));
@@ -142,31 +145,23 @@ public class SnippetController {
         }
     }
 
-
     @GetMapping("/{id}")
-    public ResponseEntity<SnippetContentDTO> getSnippet(
-            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        if (snippetService.validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL)
-                || snippetService.validateSnippet(getOwnerId(jwt), id, AuthorizationActions.READ)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+    public ResponseEntity<Snippet> getSnippetById(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
+        String ownerId = getOwnerId(jwt);
+        Snippet snippets = snippetService.getSnippetById(UUID.fromString(id));
+//        if (snippets == null || snippets.isEmpty()) {
+//            return ResponseEntity.ok(Collections.emptyList());
+//        }
+//        List<Snippet> allowedSnippets = snippets.stream()
+//                .filter(s -> !snippetService.validateSnippet(ownerId, s.getId(), AuthorizationActions.ALL)
+//                        || !snippetService.validateSnippet(ownerId, s.getId(), AuthorizationActions.READ))
+//                .toList();
+        if(snippetService.validateSnippet(ownerId,UUID.fromString(id),AuthorizationActions.ALL)||
+            snippetService.validateSnippet(ownerId,UUID.fromString(id),AuthorizationActions.READ)) {
+            return ResponseEntity.status(HttpStatus.OK).body(snippets);
         }
-        Snippet snippet = snippetService.getSnippetById(id);
-        return ResponseEntity.ok(new SnippetContentDTO(
-                snippet.getName(), snippet.getDescription(), snippet.getLanguage(),
-                snippetService.downloadSnippetContent(snippet.getId())));
-    }
-
-    @GetMapping("/snippet")
-    public ResponseEntity<Snippet> getAllSnippetData(@AuthenticationPrincipal Jwt jwt, @RequestParam UUID id) {
-        if(snippetService.validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL)
-            || snippetService.validateSnippet(getOwnerId(jwt), id, AuthorizationActions.READ)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
-        }
-        Snippet snippet = snippetService.getSnippetById(id);
-        if (snippet == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(snippet);
+        return ResponseEntity.ok(snippets);
     }
 
     @DeleteMapping("/{id}")
@@ -175,6 +170,11 @@ public class SnippetController {
             @AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
         try {
+            logger.info("Snippet id {}",id);
+            if (snippetService.validateSnippet(
+                    userId,id,AuthorizationActions.ALL)) {
+                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+            }
             Snippet snippet = snippetService.getSnippetById(id);
             if (snippet == null) {
                 return ResponseEntity.status(404).body("Snippet not found or not accessible.");
@@ -183,7 +183,7 @@ public class SnippetController {
             if (!deletedPermissions.getStatusCode().is2xxSuccessful()) {
                 return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
             }
-            ResponseEntity<String> deleteTest = snippetService.deleteTest(userId, id);
+            ResponseEntity<String> deleteTest = snippetService.deleteTest(id,jwt.getTokenValue());
             if (!deleteTest.getStatusCode().is2xxSuccessful()) {
                 return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
             }
@@ -201,4 +201,5 @@ public class SnippetController {
         }
         return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId);
     }
+
 }

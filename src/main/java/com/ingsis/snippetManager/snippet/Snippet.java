@@ -94,7 +94,6 @@ public class Snippet {
         this.lintStatus = lintStatus;
     }
 
-
     public List<TestStatus> getTestStatusList() {
         return testStatusList;
     }

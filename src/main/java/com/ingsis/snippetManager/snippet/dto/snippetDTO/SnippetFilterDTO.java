@@ -7,10 +7,9 @@ import com.ingsis.snippetManager.snippet.dto.filters.SortBy;
 import org.springframework.web.bind.annotation.RequestParam;
 
 public record SnippetFilterDTO(
-        @RequestParam(required = false) String name,
-        @RequestParam(required = false) String language,
-        @RequestParam(required = false) SnippetLintStatus valid,
-        @RequestParam(required = false) SortBy sortBy,
-        @RequestParam(required = false) Order order,
-        @RequestParam(required = false) Property property) {
-}
+        String name,
+        String language,
+        SnippetLintStatus valid,
+        SortBy sortBy,
+        Order order,
+        Property property){}

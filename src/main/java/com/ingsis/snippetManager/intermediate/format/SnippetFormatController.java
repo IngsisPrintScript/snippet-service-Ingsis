@@ -38,11 +38,11 @@ public class SnippetFormatController {
     @GetMapping("/{snippetId}")
     public ResponseEntity<SnippetFormatStatus> formatSnippet(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID snippetId
+            @PathVariable String snippetId
     ) {
         try {
             String ownerId = getString(jwt);
-            Snippet contentDTO = (snippetController.getAllSnippetData(jwt, snippetId)).getBody();
+            Snippet contentDTO = (snippetController.getSnippetById(jwt, snippetId)).getBody();
             if (contentDTO == null) {
                 return ResponseEntity.badRequest().build();
             }
@@ -77,7 +77,6 @@ public class SnippetFormatController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating linting rules: " + e.getMessage());
         }
-
     }
 
     @GetMapping("/snippets/format-status")
