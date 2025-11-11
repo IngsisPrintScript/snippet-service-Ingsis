@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -111,6 +112,26 @@ public class UserPermissionService {
             return ResponseEntity.ok().body(response.getBody());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
+    public String getUserIdBySnippetId(UUID snippetId) {
+        try {
+            String url = authorizationServiceUrl + "/permissions?snippetId=" + snippetId;
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    String.class
+            );
+            if (response.getBody() == null || response.getBody().isBlank()) {
+                throw new RuntimeException("Not userId found for snippetId: " + snippetId);
+            }
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Error getting userId: " + e.getResponseBodyAsString(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error getting userId for SnippetId: " + e.getMessage(), e);
         }
     }
 }

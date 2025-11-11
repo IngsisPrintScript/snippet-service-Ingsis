@@ -2,7 +2,9 @@ package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.permissions.PermissionDTO;
+import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.*;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import org.slf4j.Logger;
@@ -136,10 +138,11 @@ public class SnippetController {
             @AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) SnippetFilterDTO filterDTO) {
         try {
             if (filterDTO == null) {
-                return ResponseEntity.ok(snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH));
+                List<Snippet> snippets = snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH);
+                return ResponseEntity.ok(snippets.stream().map(s -> (new DataDTO(s,snippetService.findUserBySnippetId(s.getId(),jwt)))));
             }
             List<Snippet> snippets = snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO);
-            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)));
+            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream().map(s -> (new SnippetWithLintData(s.snippet(),s.valid(),snippetService.findUserBySnippetId(s.snippet().getId(),jwt)))));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error getting the snippets: " + e.getMessage());
         }
@@ -201,5 +204,4 @@ public class SnippetController {
         }
         return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId);
     }
-
 }

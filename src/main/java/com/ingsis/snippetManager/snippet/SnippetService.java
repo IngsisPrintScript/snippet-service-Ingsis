@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.ingsis.snippetManager.authSecurityConfig.AuthenticationService;
 import com.ingsis.snippetManager.intermediate.lint.LintingService;
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,18 +35,20 @@ public class SnippetService {
     private final AssetService assetService;
     private final UserPermissionService userPermissionService;
     private final TestingService testingService;
+    private final AuthenticationService authenticationService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetService.class);
     // private final PrintScriptParser parser;
 
     // PrintScriptParser parser to add
     public SnippetService(
             SnippetRepo repository, AssetService assetService, LintingService lintingService,
-            UserPermissionService userPermissionService, TestingService testingService) {
+            UserPermissionService userPermissionService, TestingService testingService, AuthenticationService authenticationService) {
         this.repository = repository;
         this.assetService = assetService;
         this.lintingService = lintingService;
         this.userPermissionService = userPermissionService;
         this.testingService = testingService;
+        this.authenticationService = authenticationService;
         // this.parser = parser;
     }
 
@@ -212,4 +216,8 @@ public class SnippetService {
         testingService.runAllTestsForSnippet(snippetId);
     }
 
+    public String findUserBySnippetId(UUID snippetId, Jwt jwt) {
+        String userId = userPermissionService.getUserIdBySnippetId(snippetId);
+        return authenticationService.getUserNameById(userId, jwt);
+    }
 }
