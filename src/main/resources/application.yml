@@ -2,7 +2,7 @@ spring:
   application:
     name: ingsis
   datasource:
-    url: ${DATABASE_URL}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/snippets}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -18,8 +18,8 @@ spring:
           issuer-uri: ${AUTH0_ISSUER_URI}
   data:
     redis:
-      host: localhost
-      port: 6378
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
 
 okta:
   oauth2:

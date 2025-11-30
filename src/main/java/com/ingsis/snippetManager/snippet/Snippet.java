@@ -14,6 +14,7 @@ public class Snippet {
     private UUID id;
 
     @NotBlank
+    @Column(name = "name", columnDefinition = "TEXT")
     private String name;
 
     private String description;

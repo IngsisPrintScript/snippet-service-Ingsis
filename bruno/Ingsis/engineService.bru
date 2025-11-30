@@ -1,0 +1,26 @@
+meta {
+  name: engineService
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:8082/run/c01cd522-47c8-4562-bf4c-1418fd1fe65d
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "snippetId":"c01cd522-47c8-4562-bf4c-1418fd1fe65d",
+    "language":"PrintScript",
+    "inputs":[1,2,3],
+    "version":"1.0",
+    "content":"let a:String = b;"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

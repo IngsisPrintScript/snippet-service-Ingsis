@@ -41,12 +41,12 @@ public class UserPermissionService {
     }
     public List<UUID> getUserSnippets(String userId, AuthorizationActions action) {
         try {
-            PermissionDTO permissionDTO =
-                    new PermissionDTO(action,userId);
+            FilterDTO permissionDTO =
+                    new FilterDTO(action);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<PermissionDTO> request = new HttpEntity<>(permissionDTO, headers);
+            HttpEntity<FilterDTO> request = new HttpEntity<>(permissionDTO, headers);
 
             ResponseEntity<List<UUID>> response = restTemplate.exchange(
                     authorizationServiceUrl + "/permissions/getSnippets?userId=" + userId,

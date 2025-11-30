@@ -1,9 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,21 +60,27 @@ public class SnippetService {
     }
 
     public ValidationResult updateSnippet(UUID id, String subject, Snippet updatedSnippet, String content) {
-        repository
+        logger.info("Updating snippet with id: " + id);
+        Snippet snippet = repository
                 .findById(id)
                 .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        logger.info("find repository");
         // ValidationResult result = parserClient.validate(updatedSnippet.content());
         ValidationResult result = new ValidationResult(true, "Success");
         if (result.isValid()) {
-            Snippet snippet = new Snippet(updatedSnippet.getName(),
+            Snippet updateSnippet = new Snippet(UUID.randomUUID(),updatedSnippet.getName(),
                     updatedSnippet.getDescription(),
                     updatedSnippet.getLanguage(),
                     updatedSnippet.getVersion());
+            logger.info("Snippet created {}", snippet.getId());
             try {
                 assetService.saveSnippet(snippet.getId(), content == null ? "" : content);
+                logger.info("Snippet updated {}", snippet.getId());
                 repository.save(snippet);
+                logger.info("Snippet updated");
             } catch (Exception e) {
                 assetService.deleteSnippet(snippet.getId());
+                logger.info("Snippet deleted");
                 return new ValidationResult(true, e.getMessage());
             }
             runAllTestsForSnippet(subject, snippet.getId());
@@ -88,10 +91,12 @@ public class SnippetService {
     public List<Snippet> getSnippetsBy(String subject, SnippetFilterDTO filter) {
         Sort sort = Sort.unsorted();
         logger.info("snippets unsorted");
+
         if (filter.sortBy() != null && filter.order() != null) {
             Sort.Direction direction =
                     (filter.order() == Order.DESC) ? Sort.Direction.DESC : Sort.Direction.ASC;
             logger.info("Sort by direction {}", direction);
+
             String sortField = switch (filter.sortBy()) {
                 case LANGUAGE -> "language";
                 case NAME -> "name";
@@ -111,16 +116,45 @@ public class SnippetService {
         if (noFilters) {
             return getAllSnippetsByOwner(subject, Property.OWNER);
         }
-        String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name() : null;
-        String languageFilter = (filter.language() != null && !filter.language().isEmpty()) ? filter.language() : null;
+
+        String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name().toLowerCase() : null;
+        logger.info("nameFilter : {}", nameFilter);
+        String languageFilter = (filter.language() != null && !filter.language().isEmpty()) ? filter.language().toLowerCase() : null;
+        logger.info("languageFilter : {}", languageFilter);
+
         List<UUID> uuids = getAllUuids(subject, filter.property());
         logger.info("uuids {}", uuids);
-        return repository.findFilteredSnippets(
-                nameFilter,
-                languageFilter,
-                uuids,
-                sort
-        );
+
+        // Traer todos los snippets por UUID desde la DB
+        List<Snippet> snippets = repository.findAllById(uuids);
+
+        // Filtrado en memoria
+        if (nameFilter != null) {
+            snippets = snippets.stream()
+                    .filter(s -> s.getName() != null && s.getName().toLowerCase().contains(nameFilter))
+                    .collect(Collectors.toList());
+        }
+
+        if (languageFilter != null) {
+            snippets = snippets.stream()
+                    .filter(s -> s.getLanguage() != null && s.getLanguage().toLowerCase().equals(languageFilter))
+                    .collect(Collectors.toList());
+        }
+        if (!sort.isUnsorted()) {
+            Comparator<Snippet> comparator = switch (filter.sortBy()) {
+                case LANGUAGE -> Comparator.comparing(Snippet::getLanguage, Comparator.nullsLast(String::compareToIgnoreCase));
+                case NAME -> Comparator.comparing(Snippet::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+                default -> null;
+            };
+            if (comparator != null) {
+                if (filter.order() == Order.DESC) {
+                    comparator = comparator.reversed();
+                }
+                snippets = snippets.stream().sorted(comparator).toList();
+            }
+        }
+
+        return snippets;
     }
 
     public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO, String snippetOwnerId) {
@@ -165,7 +199,7 @@ public class SnippetService {
     }
 
     private @NotNull List<UUID> getAllUuids(String subject, Property principal) {
-        if (principal == Property.BOTH) {
+        if (principal == Property.BOTH || principal == null) {
             Set<UUID> set = Stream.concat(
                     userPermissionService.getUserSnippets(subject, AuthorizationActions.ALL).stream(),
                     userPermissionService.getUserSnippets(subject, AuthorizationActions.READ).stream()
@@ -173,6 +207,7 @@ public class SnippetService {
             return List.copyOf(set);
         }
         AuthorizationActions authorizationActions = principal == Property.OWNER ? AuthorizationActions.ALL : AuthorizationActions.READ;
+        logger.info("getAllUuids {}", authorizationActions);
         return userPermissionService.getUserSnippets(subject, authorizationActions);
     }
 
@@ -198,6 +233,7 @@ public class SnippetService {
     }
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
+        logger.info("content {}",content);
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
     }
 

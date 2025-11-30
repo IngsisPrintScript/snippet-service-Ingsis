@@ -1,10 +1,9 @@
 package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
-import com.ingsis.snippetManager.intermediate.permissions.PermissionDTO;
+import com.ingsis.snippetManager.intermediate.permissions.FilterDTO;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.*;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import org.slf4j.Logger;
@@ -115,7 +114,7 @@ public class SnippetController {
     }
 
     private ResponseEntity<String> updateSnippetCommon(UUID id,Snippet snippet, String content, String owner) {
-        if (!snippetService.validateSnippet(
+        if (snippetService.validateSnippet(
                         owner,id,AuthorizationActions.ALL)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
@@ -139,10 +138,10 @@ public class SnippetController {
         try {
             if (filterDTO == null) {
                 List<Snippet> snippets = snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH);
-                return ResponseEntity.ok(snippets.stream().map(s -> (new DataDTO(s,snippetService.findUserBySnippetId(s.getId(),jwt)))));
+                return ResponseEntity.ok(snippets.stream().map(s -> (new DataDTO(s,snippetService.findUserBySnippetId(s.getId(),jwt),snippetService.downloadSnippetContent(s.getId())))));
             }
             List<Snippet> snippets = snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO);
-            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream().map(s -> (new SnippetWithLintData(s.snippet(),s.valid(),snippetService.findUserBySnippetId(s.snippet().getId(),jwt)))));
+            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream().map(s -> (new SnippetWithLintData(s.snippet(),s.valid(),snippetService.findUserBySnippetId(s.snippet().getId(),jwt),snippetService.downloadSnippetContent(s.snippet().getId())))));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error getting the snippets: " + e.getMessage());
         }
@@ -198,7 +197,7 @@ public class SnippetController {
     }
 
     @PutMapping("/{snippetId}/share")
-    public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody PermissionDTO shareSnippetDTO, @PathVariable UUID snippetId) {
+    public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO, @PathVariable UUID snippetId) {
         if (!snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to modify snippet");
         }
