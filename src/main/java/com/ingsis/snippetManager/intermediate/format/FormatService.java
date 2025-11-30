@@ -9,9 +9,11 @@ import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.Status;
 import com.ingsis.snippetManager.snippet.dto.format.StatusResult;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,9 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.List;
-import java.util.UUID;
 
 @Service
 public class FormatService {
@@ -33,10 +32,8 @@ public class FormatService {
     private final FormatRequestProducer formatRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(FormatService.class);
 
-    public FormatService(@Value("http://localhost:8082/formater") String testingServiceUrl,
-                          SnippetRepo snippetRepo,
-                          AssetService assetService,
-                          FormatRequestProducer formatRequestProducer) {
+    public FormatService(@Value("http://localhost:8082/formater") String testingServiceUrl, SnippetRepo snippetRepo,
+            AssetService assetService, FormatRequestProducer formatRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.formatServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
@@ -55,7 +52,6 @@ public class FormatService {
         }
     }
 
-
     public SnippetFormatStatus formatContent(Snippet snippet, String ownerId) {
         try {
             logger.info("Evaluating snippet for user {}", ownerId);
@@ -63,9 +59,8 @@ public class FormatService {
             logger.info("Created the request: {}", request);
             String url = formatServiceUrl + "/format";
             logger.info("Evaluating at url: {}", url);
-            ResponseEntity<StatusResult> response =
-                    restTemplate.postForEntity(url, request, StatusResult.class);
-            if(response.getBody() != null || response.getBody().status().equals(Status.PASSED)){
+            ResponseEntity<StatusResult> response = restTemplate.postForEntity(url, request, StatusResult.class);
+            if (response.getBody() != null || response.getBody().status().equals(Status.PASSED)) {
                 return SnippetFormatStatus.PASSED;
             }
             return SnippetFormatStatus.FAILED;
@@ -89,11 +84,7 @@ public class FormatService {
         for (Snippet snippet : snippets) {
             snippet.setLintStatus(SnippetLintStatus.PENDING);
             logger.info("Format snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
-            FormatRequestEvent event = new FormatRequestEvent(
-                    userId,
-                    snippet.getId(),
-                    snippet.getLanguage()
-            );
+            FormatRequestEvent event = new FormatRequestEvent(userId, snippet.getId(), snippet.getLanguage());
             formatRequestProducer.publish(event);
         }
     }

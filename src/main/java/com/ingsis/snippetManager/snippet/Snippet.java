@@ -2,10 +2,21 @@ package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotBlank;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 public class Snippet {
@@ -37,7 +48,6 @@ public class Snippet {
 
     @Enumerated(EnumType.STRING)
     private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_FORMAT;
-
 
     public Snippet() {
     }
@@ -84,9 +94,11 @@ public class Snippet {
     public SnippetLintStatus getLintStatus() {
         return lintStatus;
     }
+
     public SnippetFormatStatus getFormatStatus() {
         return formatStatus;
     }
+
     public void setFormatStatus(SnippetFormatStatus formatStatus) {
         this.formatStatus = formatStatus;
     }

@@ -1,7 +1,16 @@
 package com.ingsis.snippetManager.snippet;
 
 import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 import java.util.UUID;
 
@@ -15,6 +24,7 @@ public class TestStatus {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SnippetTestStatus testStatus;
+
     private UUID testId;
 
     @ManyToOne(fetch = FetchType.LAZY)

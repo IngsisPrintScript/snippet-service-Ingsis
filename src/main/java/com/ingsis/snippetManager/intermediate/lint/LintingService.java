@@ -1,24 +1,25 @@
 package com.ingsis.snippetManager.intermediate.lint;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.UUID;
-
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.redis.lint.LintRequestProducer;
 import com.ingsis.snippetManager.redis.lint.dto.LintRequestEvent;
 import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
+import com.ingsis.snippetManager.snippet.dto.lintingDTO.EvaluateSnippet;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.Result;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.UpdateDTO;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -32,10 +33,8 @@ public class LintingService {
     private final LintRequestProducer lintRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(LintingService.class);
 
-    public LintingService(@Value("http://localhost:8081/linting") String testingServiceUrl,
-                          SnippetRepo snippetRepo,
-                          AssetService assetService,
-                          LintRequestProducer lintRequestProducer) {
+    public LintingService(@Value("http://localhost:8081/linting") String testingServiceUrl, SnippetRepo snippetRepo,
+            AssetService assetService, LintRequestProducer lintRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.lintingServiceUrl = testingServiceUrl;
         this.snippetRepo = snippetRepo;
@@ -54,7 +53,6 @@ public class LintingService {
         }
     }
 
-
     public SnippetLintStatus validLinting(UUID snippetId, String ownerId) {
         try {
             logger.info("Evaluating snippet for user {}", ownerId);
@@ -62,12 +60,14 @@ public class LintingService {
             logger.info("Created the request: {}", request);
             String url = lintingServiceUrl + "/evaluate";
             logger.info("Evaluating at url: {}", url);
-            ResponseEntity<SnippetLintStatus> response =
-                    restTemplate.postForEntity(url, request, SnippetLintStatus.class);
+            ResponseEntity<SnippetLintStatus> response = restTemplate.postForEntity(url, request,
+                    SnippetLintStatus.class);
             if (response.getBody() == null) {
                 return SnippetLintStatus.FAILED;
             }
-            return response.getBody().equals(SnippetLintStatus.PASSED) ? SnippetLintStatus.PASSED : SnippetLintStatus.FAILED;
+            return response.getBody().equals(SnippetLintStatus.PASSED)
+                    ? SnippetLintStatus.PASSED
+                    : SnippetLintStatus.FAILED;
         } catch (Exception e) {
             return SnippetLintStatus.FAILED;
         }
@@ -80,18 +80,13 @@ public class LintingService {
             logger.info("Created the request: {}", request);
             String url = lintingServiceUrl + "/evaluate/pass";
             logger.info("Evaluating at url: {}", url);
-            return restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    new HttpEntity<>(request),
+            return restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(request),
                     new ParameterizedTypeReference<List<Result>>() {
-                    }
-            );
+                    });
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
-
 
     public ResponseEntity<?> updateLintingRules(String userId, List<UpdateDTO> rulesDTO) {
         logger.info("Updating linting rules for user {}", userId);
@@ -109,16 +104,12 @@ public class LintingService {
             snippet.setLintStatus(SnippetLintStatus.PENDING);
             logger.info("Linting snippet {} set to {}", snippet.getId(), snippet.getLintStatus());
             String content = assetService.getSnippet(snippet.getId()).getBody();
-            LintRequestEvent event = new LintRequestEvent(
-                    userId,
-                    snippet.getId(),
-                    snippet.getLanguage()
-            );
+            LintRequestEvent event = new LintRequestEvent(userId, snippet.getId(), snippet.getLanguage());
             lintRequestProducer.publish(event);
         }
     }
 
-    public List<Snippet> getAllSnippetByOwner(List<UUID> snippetsId){
+    public List<Snippet> getAllSnippetByOwner(List<UUID> snippetsId) {
         return snippetRepo.findAllById(snippetsId);
     }
 }

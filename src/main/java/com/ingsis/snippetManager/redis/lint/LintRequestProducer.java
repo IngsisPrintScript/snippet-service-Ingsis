@@ -18,15 +18,13 @@ public class LintRequestProducer {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public LintRequestProducer(
-            @Value("${redis.streams.lintRequest}") String streamName,
-            RedisTemplate<String, String> redisTemplate,
-            ObjectMapper objectMapper) {
+    public LintRequestProducer(@Value("${redis.streams.lintRequest}") String streamName,
+            RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper) {
         this.streamName = streamName;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
-    
+
     public void publish(LintRequestEvent event) {
         try {
             String json = objectMapper.writeValueAsString(event);

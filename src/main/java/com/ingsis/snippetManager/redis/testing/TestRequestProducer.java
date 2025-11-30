@@ -18,10 +18,8 @@ public class TestRequestProducer {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public TestRequestProducer(
-            @Value("${redis.streams.testRequest}") String streamName,
-            RedisTemplate<String, String> redisTemplate,
-            ObjectMapper objectMapper) {
+    public TestRequestProducer(@Value("${redis.streams.testRequest}") String streamName,
+            RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper) {
         this.streamName = streamName;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;

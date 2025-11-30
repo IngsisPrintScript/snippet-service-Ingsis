@@ -91,15 +91,16 @@ bootRun {
 			"-javaagent:${projectDir}/newrelic/extracted/newrelic.jar"
 	]
 }
-//spotless {
-//	java {
-////		googleJavaFormat()
-////		target 'src/**/*.java'
-////		indentWithSpaces(4)
-//	}
-//}
-//
-//checkstyle {
-////	toolVersion = '10.12.0'
-////	configFile = file("config/checkstyle/checkstyle.xml") //Reemplazar por nuestras checkstyles
-//}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        eclipse().configFile("config/eclipse-java-style.xml")
+        importOrder()
+        removeUnusedImports()
+    }
+}
+checkstyle {
+    toolVersion = '10.12.0'   // la versión de Checkstyle que quieras usar
+    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+}

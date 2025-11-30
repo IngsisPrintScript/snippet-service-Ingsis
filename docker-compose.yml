@@ -12,16 +12,12 @@ services:
       - .env
     volumes:
       - db:/var/lib/postgresql/data
-    networks:
-      - snippet-net
 
   redis:
     image: redis:6-alpine
     container_name: "snippet_redis"
     ports:
       - "6379:6379"
-    networks:
-      - snippet-net
 
   snippet-service:
     build:
@@ -36,14 +32,10 @@ services:
       - db
       - asset-service
       - redis
-#      - printscript-service
     environment:
       BUCKET_URL: ${BUCKET_URL}
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
-#      PRINTSCRIPT_URL: http://printscript-service:8080/validate
-    networks:
-      - snippet-net
 
   asset-service:
     container_name: "asset_service"
@@ -60,8 +52,6 @@ services:
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
     depends_on:
       - azurite
-    networks:
-      - snippet-net
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
@@ -73,21 +63,6 @@ services:
       - "10002:10002"
     volumes:
       - blob:/workspace
-    networks:
-      - snippet-net
-
-#  printscript-service:
-#    image: ghcr.io/austral-ingsis/printscript-service:main.17
-#    container_name: printscript-service
-#    ports:
-#      - "${PRINTSCRIPT_PORT}:8080"
-#    networks:
-#      - snippet-net
-
 volumes:
   db:
   blob:
-
-networks:
-  snippet-net:
-    external: true

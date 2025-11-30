@@ -18,9 +18,8 @@ public class UserClientService {
 
     public boolean userExists(String userId) {
         try {
-            ResponseEntity<Boolean> response =
-                    restTemplate.getForEntity(
-                            authServiceUrl + "/api/users/exists/{userId}", Boolean.class, userId);
+            ResponseEntity<Boolean> response = restTemplate.getForEntity(authServiceUrl + "/api/users/exists/{userId}",
+                    Boolean.class, userId);
             return response.getBody() != null && response.getBody();
         } catch (Exception e) {
             return false;

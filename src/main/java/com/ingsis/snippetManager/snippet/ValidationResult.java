@@ -1,7 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
 import jakarta.persistence.Embeddable;
-
 import java.util.UUID;
 
 @Embeddable

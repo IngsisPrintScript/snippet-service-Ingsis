@@ -1,12 +1,8 @@
 package com.ingsis.snippetManager.snippet;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.ingsis.snippetManager.authSecurityConfig.AuthenticationService;
-import com.ingsis.snippetManager.intermediate.lint.LintingService;
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
+import com.ingsis.snippetManager.intermediate.lint.LintingService;
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.testing.TestingService;
@@ -15,6 +11,14 @@ import com.ingsis.snippetManager.snippet.dto.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +38,13 @@ public class SnippetService {
     private final TestingService testingService;
     private final AuthenticationService authenticationService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetService.class);
+
     // private final PrintScriptParser parser;
 
     // PrintScriptParser parser to add
-    public SnippetService(
-            SnippetRepo repository, AssetService assetService, LintingService lintingService,
-            UserPermissionService userPermissionService, TestingService testingService, AuthenticationService authenticationService) {
+    public SnippetService(SnippetRepo repository, AssetService assetService, LintingService lintingService,
+            UserPermissionService userPermissionService, TestingService testingService,
+            AuthenticationService authenticationService) {
         this.repository = repository;
         this.assetService = assetService;
         this.lintingService = lintingService;
@@ -61,17 +66,13 @@ public class SnippetService {
 
     public ValidationResult updateSnippet(UUID id, String subject, Snippet updatedSnippet, String content) {
         logger.info("Updating snippet with id: " + id);
-        Snippet snippet = repository
-                .findById(id)
-                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
         logger.info("find repository");
         // ValidationResult result = parserClient.validate(updatedSnippet.content());
         ValidationResult result = new ValidationResult(true, "Success");
         if (result.isValid()) {
-            Snippet updateSnippet = new Snippet(UUID.randomUUID(),updatedSnippet.getName(),
-                    updatedSnippet.getDescription(),
-                    updatedSnippet.getLanguage(),
-                    updatedSnippet.getVersion());
+            Snippet updateSnippet = new Snippet(UUID.randomUUID(), updatedSnippet.getName(),
+                    updatedSnippet.getDescription(), updatedSnippet.getLanguage(), updatedSnippet.getVersion());
             logger.info("Snippet created {}", snippet.getId());
             try {
                 assetService.saveSnippet(snippet.getId(), content == null ? "" : content);
@@ -93,8 +94,7 @@ public class SnippetService {
         logger.info("snippets unsorted");
 
         if (filter.sortBy() != null && filter.order() != null) {
-            Sort.Direction direction =
-                    (filter.order() == Order.DESC) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Sort.Direction direction = (filter.order() == Order.DESC) ? Sort.Direction.DESC : Sort.Direction.ASC;
             logger.info("Sort by direction {}", direction);
 
             String sortField = switch (filter.sortBy()) {
@@ -108,10 +108,9 @@ public class SnippetService {
             }
         }
 
-        boolean noFilters = (filter.name() == null || filter.name().isEmpty()) &&
-                (filter.language() == null || filter.language().isEmpty()) &&
-                filter.valid() == null &&
-                filter.property() == null;
+        boolean noFilters = (filter.name() == null || filter.name().isEmpty())
+                && (filter.language() == null || filter.language().isEmpty()) && filter.valid() == null
+                && filter.property() == null;
         logger.info("noFilters {}", noFilters);
         if (noFilters) {
             return getAllSnippetsByOwner(subject, Property.OWNER);
@@ -119,7 +118,9 @@ public class SnippetService {
 
         String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name().toLowerCase() : null;
         logger.info("nameFilter : {}", nameFilter);
-        String languageFilter = (filter.language() != null && !filter.language().isEmpty()) ? filter.language().toLowerCase() : null;
+        String languageFilter = (filter.language() != null && !filter.language().isEmpty())
+                ? filter.language().toLowerCase()
+                : null;
         logger.info("languageFilter : {}", languageFilter);
 
         List<UUID> uuids = getAllUuids(subject, filter.property());
@@ -142,7 +143,8 @@ public class SnippetService {
         }
         if (!sort.isUnsorted()) {
             Comparator<Snippet> comparator = switch (filter.sortBy()) {
-                case LANGUAGE -> Comparator.comparing(Snippet::getLanguage, Comparator.nullsLast(String::compareToIgnoreCase));
+                case LANGUAGE ->
+                    Comparator.comparing(Snippet::getLanguage, Comparator.nullsLast(String::compareToIgnoreCase));
                 case NAME -> Comparator.comparing(Snippet::getName, Comparator.nullsLast(String::compareToIgnoreCase));
                 default -> null;
             };
@@ -157,7 +159,8 @@ public class SnippetService {
         return snippets;
     }
 
-    public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO, String snippetOwnerId) {
+    public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO,
+            String snippetOwnerId) {
         List<SnippetValidLintingDTO> validatedSnippets = new ArrayList<>();
         for (Snippet snippet : snippets) {
             logger.info("Validating snippet {}", snippet.getName());
@@ -174,21 +177,17 @@ public class SnippetService {
         return validatedSnippets;
     }
 
-
     public String downloadSnippetContent(UUID snippetId) {
         logger.info("Downloading snippet content for snippet with id: {}", snippetId);
-        Snippet snippet = repository.findById(snippetId)
-                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
         logger.info("Snippet with id {}", snippet.getId());
         String content = assetService.getSnippet(snippetId).getBody();
         logger.info("Content bytes: {}", content);
         return content;
     }
 
-
     public ResponseEntity<String> deleteSnippet(UUID snippetId) {
-        Snippet snippet = repository.findById(snippetId)
-                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
         repository.delete(snippet);
         try {
             return assetService.deleteSnippet(snippetId);
@@ -200,13 +199,15 @@ public class SnippetService {
 
     private @NotNull List<UUID> getAllUuids(String subject, Property principal) {
         if (principal == Property.BOTH || principal == null) {
-            Set<UUID> set = Stream.concat(
-                    userPermissionService.getUserSnippets(subject, AuthorizationActions.ALL).stream(),
-                    userPermissionService.getUserSnippets(subject, AuthorizationActions.READ).stream()
-            ).collect(Collectors.toSet());
+            Set<UUID> set = Stream
+                    .concat(userPermissionService.getUserSnippets(subject, AuthorizationActions.ALL).stream(),
+                            userPermissionService.getUserSnippets(subject, AuthorizationActions.READ).stream())
+                    .collect(Collectors.toSet());
             return List.copyOf(set);
         }
-        AuthorizationActions authorizationActions = principal == Property.OWNER ? AuthorizationActions.ALL : AuthorizationActions.READ;
+        AuthorizationActions authorizationActions = principal == Property.OWNER
+                ? AuthorizationActions.ALL
+                : AuthorizationActions.READ;
         logger.info("getAllUuids {}", authorizationActions);
         return userPermissionService.getUserSnippets(subject, authorizationActions);
     }
@@ -216,16 +217,16 @@ public class SnippetService {
     }
 
     public ResponseEntity<String> createUser(String userId, AuthorizationActions authorizationActions, UUID snippetId) {
-        logger.info("Add permission {} to user {} for the snippet {}",authorizationActions, userId, snippetId);
-       return userPermissionService.createUser(userId,authorizationActions,snippetId);
+        logger.info("Add permission {} to user {} for the snippet {}", authorizationActions, userId, snippetId);
+        return userPermissionService.createUser(userId, authorizationActions, snippetId);
     }
 
-    public ResponseEntity<String> deleteSnippetUserAuthorization(UUID id){
+    public ResponseEntity<String> deleteSnippetUserAuthorization(UUID id) {
         return userPermissionService.deleteSnippetUserAuthorization(id);
     }
 
-    public ResponseEntity<String> deleteTest(UUID id,String jwt){
-        return testingService.deleteTestsBySnippet(id,jwt);
+    public ResponseEntity<String> deleteTest(UUID id, String jwt) {
+        return testingService.deleteTestsBySnippet(id, jwt);
     }
 
     public Snippet getSnippetById(UUID id) {
@@ -233,12 +234,12 @@ public class SnippetService {
     }
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
-        logger.info("content {}",content);
+        logger.info("content {}", content);
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
     }
 
     public List<Snippet> getAllSnippetsByOwner(String subject, Property property) {
-        logger.info("Get all snippets by owner {} with property {}", subject,property);
+        logger.info("Get all snippets by owner {} with property {}", subject, property);
         List<UUID> uuids = getAllUuids(subject, property);
         logger.info("All uuids: {}", uuids);
         return repository.findAllById(uuids);

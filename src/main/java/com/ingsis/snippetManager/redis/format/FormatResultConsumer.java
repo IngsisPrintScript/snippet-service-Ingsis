@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ingsis.snippetManager.redis.format.dto.FormatResultEvent;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import jakarta.annotation.PreDestroy;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.austral.ingsis.redis.RedisStreamConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -15,9 +17,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.stream.StreamReceiver;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 @Component
 @Profile("!test")
 public class FormatResultConsumer extends RedisStreamConsumer<String> {
@@ -27,13 +26,9 @@ public class FormatResultConsumer extends RedisStreamConsumer<String> {
     private final SnippetRepo snippetRepository;
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
-    public FormatResultConsumer(
-            @Value("${redis.streams.formatResult}") String streamName,
-            @Value("${redis.groups.format}") String groupName,
-            RedisTemplate<String, String> redisTemplate,
-            ObjectMapper objectMapper,
-            SnippetRepo snippetRepository
-    ) {
+    public FormatResultConsumer(@Value("${redis.streams.formatResult}") String streamName,
+            @Value("${redis.groups.format}") String groupName, RedisTemplate<String, String> redisTemplate,
+            ObjectMapper objectMapper, SnippetRepo snippetRepository) {
         super(streamName, groupName, redisTemplate);
         this.objectMapper = objectMapper;
         this.snippetRepository = snippetRepository;
@@ -57,10 +52,8 @@ public class FormatResultConsumer extends RedisStreamConsumer<String> {
 
     @Override
     public @NotNull StreamReceiver.StreamReceiverOptions<String, ObjectRecord<String, String>> options() {
-        return StreamReceiver.StreamReceiverOptions.builder()
-                .pollTimeout(java.time.Duration.ofSeconds(10))
-                .targetType(String.class)
-                .build();
+        return StreamReceiver.StreamReceiverOptions.builder().pollTimeout(java.time.Duration.ofSeconds(10))
+                .targetType(String.class).build();
     }
 
     @PreDestroy

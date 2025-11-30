@@ -1,18 +1,21 @@
 package com.ingsis.snippetManager.intermediate.azureStorageConfig;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class AssetService {
@@ -21,7 +24,6 @@ public class AssetService {
     private final String bucketUrl;
     private static final String CORRELATION_ID_KEY = "correlationId";
     private static final Logger logger = LoggerFactory.getLogger(AssetService.class);
-
 
     @Autowired
     public AssetService(@Value("${bucket.url}") String bucketUrl) {
