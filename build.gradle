@@ -22,14 +22,14 @@ java {
 
 repositories {
 	mavenCentral()
-	maven {
-		name = "GitHubPackages"
-		url = uri("https://maven.pkg.github.com/austral-ingsis/*")
-		credentials {
-			username = project.findProperty("USERNAME") ?: System.getenv("USERNAME")
-			password = project.findProperty("TOKEN") ?: System.getenv("TOKEN")
-		}
-	}
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/austral-ingsis/*")
+        credentials {
+            username = findProperty("gpr.user")
+            password = findProperty("gpr.key")
+        }
+    }
 }
 
 dependencies {
