@@ -12,6 +12,8 @@ services:
       - .env
     volumes:
       - db:/var/lib/postgresql/data
+    networks:
+      - snippet-net
 
   redis:
     image: redis:6-alpine
@@ -25,6 +27,8 @@ services:
       retries: 5
     volumes:
       - redis-data:/data
+    networks:
+      - snippet-net
 
   asset-service:
     container_name: "asset_service"
@@ -41,6 +45,8 @@ services:
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
     depends_on:
       - azurite
+    networks:
+      - snippet-net
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
@@ -52,6 +58,8 @@ services:
       - "10002:10002"
     volumes:
       - blob:/workspace
+    networks:
+      - snippet-net
   snippet-service:
     build:
       context: .
@@ -68,8 +76,14 @@ services:
         condition: service_started
       asset-service:
         condition: service_started
+    networks:
+      - snippet-net
 
 volumes:
   db:
   blob:
   redis-data:
+
+networks:
+  snippet-net:
+    external: true
