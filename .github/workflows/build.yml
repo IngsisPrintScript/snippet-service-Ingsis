@@ -38,7 +38,7 @@ jobs:
           docker build \
             --build-arg GITHUB_USER=${{ github.actor }} \
             --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            -t ghcr.io/ingsisprintscript/test-service:dev .
+            -t ghcr.io/ingsisprintscript/snippet-service:dev .
 
       - name: Push Docker image
-        run: docker push ghcr.io/ingsisprintscript/test-service:dev
+        run: docker push ghcr.io/ingsisprintscript/snippet-service:dev
