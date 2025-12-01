@@ -11,7 +11,6 @@ import com.ingsis.snippetManager.snippet.dto.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

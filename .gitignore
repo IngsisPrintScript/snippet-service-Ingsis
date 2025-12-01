@@ -39,5 +39,6 @@ out/
 ### Envs ###
 .env*
 *.env
+.env.local
 gradle.properties
 !.env.sample

@@ -4,17 +4,15 @@ import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.UUID;
-
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.ShareDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetWithLintData;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -30,7 +28,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 
 @RestController
 @RequestMapping("/snippets")
@@ -94,7 +91,7 @@ public class SnippetController {
     // Update from File
     @PutMapping("/{id}/update/file")
     public ResponseEntity<String> updateSnippetFromFile(@PathVariable UUID id, @ModelAttribute RequestFileDTO fileDTO,
-                                                        @AuthenticationPrincipal Jwt jwt) throws IOException {
+            @AuthenticationPrincipal Jwt jwt) throws IOException {
 
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);

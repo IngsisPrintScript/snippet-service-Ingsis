@@ -18,24 +18,13 @@ services:
     container_name: "snippet_redis"
     ports:
       - "6379:6379"
-
-  snippet-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: snippet-service
-    ports:
-      - "${API_PORT}:8080"
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - asset-service
-      - redis
-    environment:
-      BUCKET_URL: ${BUCKET_URL}
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
 
   asset-service:
     container_name: "asset_service"
@@ -63,6 +52,24 @@ services:
       - "10002:10002"
     volumes:
       - blob:/workspace
+  snippet-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: snippet-service
+    ports:
+      - "${API_PORT}:8080"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
+      asset-service:
+        condition: service_started
+
 volumes:
   db:
   blob:
+  redis-data:

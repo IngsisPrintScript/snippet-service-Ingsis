@@ -16,6 +16,11 @@ COPY . /home/gradle/project
 # Build real, generando el .jar
 RUN gradle --no-daemon clean bootJar
 
+COPY scripts/wait-for-redis.sh /wait-for-redis.sh
+
+RUN chmod +x /wait-for-redis.sh
+
+ENTRYPOINT ["/wait-for-redis.sh", "redis:6379", "--", "java", "-jar", "app.jar"]
 # --- Stage 2: run the application ---
 FROM eclipse-temurin:21-jre-alpine
 # (imagen base JRE 21 liviana)

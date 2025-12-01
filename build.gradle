@@ -98,9 +98,10 @@ spotless {
         eclipse().configFile("config/eclipse-java-style.xml")
         importOrder()
         removeUnusedImports()
+        lineEndings = 'UNIX'
     }
 }
 checkstyle {
-    toolVersion = '10.12.0'   // la versión de Checkstyle que quieras usar
+    toolVersion = '10.12.0'
     configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
 }

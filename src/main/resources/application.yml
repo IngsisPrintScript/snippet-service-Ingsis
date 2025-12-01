@@ -18,8 +18,8 @@ spring:
           issuer-uri: ${AUTH0_ISSUER_URI}
   data:
     redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
+      host: ${SPRING_REDIS_HOST}
+      port: ${SPRING_REDIS_PORT}
 
 okta:
   oauth2:
