@@ -1,4 +1,5 @@
 #!/bin/sh
+
 echo ">>> Pre-commit: ejecutando formatter + linter..."
 
 ./gradlew spotlessApply
