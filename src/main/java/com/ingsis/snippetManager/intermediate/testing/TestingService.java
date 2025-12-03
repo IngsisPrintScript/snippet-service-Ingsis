@@ -38,7 +38,7 @@ public class TestingService {
     private final UserPermissionService userPermissionService;
     private static final Logger logger = LoggerFactory.getLogger(TestingService.class);
 
-    public TestingService(@Value("http://localhost:8084/test") String testingServiceUrl, SnippetRepo snippetRepo,
+    public TestingService(@Value("http://tester:8086/test") String testingServiceUrl, SnippetRepo snippetRepo,
             TestRequestProducer testRequestProducer, UserPermissionService userPermissionService) {
         this.restTemplate = new RestTemplate();
         this.testingServiceUrl = testingServiceUrl;

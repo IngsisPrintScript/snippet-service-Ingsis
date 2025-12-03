@@ -11,7 +11,7 @@ public class UserClientService {
     private final RestTemplate restTemplate;
     private final String authServiceUrl;
 
-    public UserClientService(@Value("${AUTH0_AUDIENCE}") String authServiceUrl) {
+    public UserClientService(@Value("http://authentication-service:8087") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authServiceUrl = authServiceUrl;
     }

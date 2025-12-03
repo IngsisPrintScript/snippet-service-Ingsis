@@ -3,8 +3,8 @@ spring:
     name: ingsis
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://db:5432/snippets}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -18,8 +18,12 @@ spring:
           issuer-uri: ${AUTH0_ISSUER_URI}
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:redis}
-      port: ${SPRING_REDIS_PORT:6379}
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: ${API_PORT:8083}
+  address: 0.0.0.0
 
 okta:
   oauth2:
@@ -43,7 +47,3 @@ redis:
 
 bucket:
   url: ${BUCKET_URL}
-
-azure:
-  storage:
-    connection-string: DefaultEndpointsProtocol=http;AccountName=${AZURE_STORAGE_ACCOUNT_NAME:devstoreaccount1};AccountKey=${AZURE_STORAGE_ACCOUNT_KEY};BlobEndpoint=${AZURE_STORAGE_BLOB_ENDPOINT:http://azurite:10000/devstoreaccount1}

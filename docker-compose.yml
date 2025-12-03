@@ -1,65 +1,4 @@
 services:
-  db:
-    image: postgres:alpine
-    container_name: snippet-db
-    environment:
-      POSTGRES_USER: ${DATABASE_USERNAME}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
-    ports:
-      - "${DATABASE_PORT}:5432"
-    env_file:
-      - .env
-    volumes:
-      - db:/var/lib/postgresql/data
-    networks:
-      - snippet-net
-
-  redis:
-    image: redis:6-alpine
-    container_name: "snippet_redis"
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    volumes:
-      - redis-data:/data
-    networks:
-      - snippet-net
-
-  asset-service:
-    container_name: "asset_service"
-    image: "ghcr.io/austral-ingsis/snippet-asset-service:latest"
-    ports:
-      - "${ASSET_PORT}:8081"
-    env_file:
-      - .env
-    environment:
-      SPRING_CLOUD_AZURE_STORAGE_ACCOUNT_NAME: ${SPRING_CLOUD_AZURE_STORAGE_ACCOUNT_NAME}
-      SPRING_CLOUD_AZURE_STORAGE_ACCOUNT_KEY: ${SPRING_CLOUD_AZURE_STORAGE_ACCOUNT_KEY}
-      SPRING_CLOUD_AZURE_STORAGE_BLOB_ENDPOINT: ${SPRING_CLOUD_AZURE_STORAGE_BLOB_ENDPOINT}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
-    depends_on:
-      - azurite
-    networks:
-      - snippet-net
-
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite
-    container_name: azurite
-    hostname: azurite
-    ports:
-      - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
-    volumes:
-      - blob:/workspace
-    networks:
-      - snippet-net
   snippet-service:
     build:
       context: .
@@ -72,13 +11,6 @@ services:
       - "${API_PORT}:8081"
     env_file:
       - .env
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_started
-      asset-service:
-        condition: service_started
     networks:
       - snippet-net
 

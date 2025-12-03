@@ -33,7 +33,7 @@ public class LintingService {
     private final LintRequestProducer lintRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(LintingService.class);
 
-    public LintingService(@Value("http://localhost:8081/linting") String testingServiceUrl, SnippetRepo snippetRepo,
+    public LintingService(@Value("http://linter:8085/lint") String testingServiceUrl, SnippetRepo snippetRepo,
             AssetService assetService, LintRequestProducer lintRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.lintingServiceUrl = testingServiceUrl;

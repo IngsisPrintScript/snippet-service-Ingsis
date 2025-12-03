@@ -19,7 +19,7 @@ public class UserPermissionService {
     private final RestTemplate restTemplate;
     private final String authorizationServiceUrl;
 
-    public UserPermissionService(@Value("http://localhost:8086/") String authServiceUrl) {
+    public UserPermissionService(@Value("http://permission:8088") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authorizationServiceUrl = authServiceUrl;
     }

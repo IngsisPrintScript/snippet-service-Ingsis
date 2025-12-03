@@ -32,7 +32,7 @@ public class FormatService {
     private final FormatRequestProducer formatRequestProducer;
     private static final Logger logger = LoggerFactory.getLogger(FormatService.class);
 
-    public FormatService(@Value("http://localhost:8082/formater") String testingServiceUrl, SnippetRepo snippetRepo,
+    public FormatService(@Value("http://formatter:8082/format") String testingServiceUrl, SnippetRepo snippetRepo,
             AssetService assetService, FormatRequestProducer formatRequestProducer) {
         this.restTemplate = new RestTemplate();
         this.formatServiceUrl = testingServiceUrl;
