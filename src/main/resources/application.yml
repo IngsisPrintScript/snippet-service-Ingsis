@@ -22,7 +22,7 @@ spring:
       port: ${REDIS_PORT:6379}
 
 server:
-  port: ${API_PORT:8083}
+  port: ${API_PORT}
   address: 0.0.0.0
 
 okta:
