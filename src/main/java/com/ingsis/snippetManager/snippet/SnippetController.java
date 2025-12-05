@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/snippets")
+@RequestMapping("/snippet")
 public class SnippetController {
 
     private final SnippetService snippetService;
