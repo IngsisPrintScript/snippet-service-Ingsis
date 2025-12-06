@@ -60,9 +60,11 @@ public class SnippetController {
             @AuthenticationPrincipal Jwt jwt) {
 
         Snippet snippet = getSnippetFromText(snippetDTO);
+        logger.info("Snippet created {}", snippet.getId());
         String content = snippetDTO.content();
-
-        return createSnippetCommon(snippet, content, jwt);
+        ResponseEntity<String> str2 = createSnippetCommon(snippet, content, jwt);
+        logger.info("Saved");
+        return str2;
     }
 
     private Snippet getSnippetFromFile(RequestFileDTO fileDTO) {
@@ -76,15 +78,18 @@ public class SnippetController {
     private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, Jwt jwt) {
         ResponseEntity<String> response = snippetService.createUser(getOwnerId(jwt), AuthorizationActions.ALL,
                 snippet.getId());
+        logger.info("Add permission to user for the snippet");
         if (!response.getStatusCode().is2xxSuccessful()) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         ValidationResult result = snippetService.createSnippet(snippet);
+        logger.info("Asnippet");
         if (!result.isValid()) {
             String errorMsg = String.format("Invalid Snippet: %s in line: %d, column: %d", result.getMessage(),
                     result.getLine(), result.getColumn());
             return ResponseEntity.ok().body(errorMsg);
         }
+        logger.info("Asnippet2");
         return snippetService.saveSnippetContent(snippet.getId(), content);
     }
 

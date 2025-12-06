@@ -1,4 +1,56 @@
 services:
+  db:
+    image: postgres:alpine
+    container_name: snippet-db
+    ports:
+      - "${DATABASE_PORT}:5432"
+    env_file:
+      - .env
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks:
+      - snippet-net
+
+  redis:
+    image: redis:6-alpine
+    container_name: "redis"
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - snippet-net
+
+  asset-service:
+    container_name: "asset_service"
+    image: "ghcr.io/austral-ingsis/snippet-asset-service:latest"
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - azurite
+    networks:
+      - snippet-net
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite
+    hostname: azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - blob:/workspace
+    networks:
+      - snippet-net
+
   snippet-service:
     build:
       context: .
@@ -11,6 +63,13 @@ services:
       - "${API_PORT}:8081"
     env_file:
       - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
+      asset-service:
+        condition: service_started
     networks:
       - snippet-net
 
@@ -21,4 +80,4 @@ volumes:
 
 networks:
   snippet-net:
-    external: true
+    driver: bridge

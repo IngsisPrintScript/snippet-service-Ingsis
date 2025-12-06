@@ -2,7 +2,7 @@ spring:
   application:
     name: ingsis
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://db:5432/snippets}
+    url: ${DATABASE_URL:jdbc:postgresql://db:5432/snippet}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
