@@ -25,6 +25,9 @@ server:
   port: ${API_PORT}
   address: 0.0.0.0
 
+logging:
+  level:
+    root: INFO
 okta:
   oauth2:
     # Replace with the domain of your Auth0 tenant.
