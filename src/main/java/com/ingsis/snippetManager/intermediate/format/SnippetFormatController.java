@@ -80,7 +80,7 @@ public class SnippetFormatController {
     @GetMapping("/snippets/format-status")
     public ResponseEntity<List<SnippetValidFormatDTO>> getFormatStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,getToken(jwt));
         List<Snippet> snippets = formatService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetValidFormatDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidFormatDTO(snippet, snippet.getFormatStatus())).toList();
@@ -90,7 +90,7 @@ public class SnippetFormatController {
     @GetMapping("/status")
     public ResponseEntity<List<GetSnippetFormatStatusDTO>> getFormatStatus(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL);
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,getToken(jwt));
         List<Snippet> snippets = formatService.getAllSnippetByOwner(snippetsOwner);
         return ResponseEntity.ok(snippets.stream()
                 .map(snippet -> new GetSnippetFormatStatusDTO(snippet.getId(), snippet.getFormatStatus())).toList());
@@ -98,5 +98,8 @@ public class SnippetFormatController {
 
     private static String getString(Jwt jwt) {
         return jwt.getClaimAsString("sub");
+    }
+    private String getToken(Jwt token){
+        return token.getTokenValue();
     }
 }

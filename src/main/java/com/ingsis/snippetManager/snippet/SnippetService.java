@@ -88,7 +88,7 @@ public class SnippetService {
         return result;
     }
 
-    public List<Snippet> getSnippetsBy(String subject, SnippetFilterDTO filter) {
+    public List<Snippet> getSnippetsBy(String subject, SnippetFilterDTO filter, String token) {
         Sort sort = Sort.unsorted();
         logger.info("snippets unsorted");
 
@@ -112,7 +112,7 @@ public class SnippetService {
                 && filter.property() == null;
         logger.info("noFilters {}", noFilters);
         if (noFilters) {
-            return getAllSnippetsByOwner(subject, Property.OWNER);
+            return getAllSnippetsByOwner(subject, Property.OWNER,token);
         }
 
         String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name().toLowerCase() : null;
@@ -122,7 +122,7 @@ public class SnippetService {
                 : null;
         logger.info("languageFilter : {}", languageFilter);
 
-        List<UUID> uuids = getAllUuids(subject, filter.property());
+        List<UUID> uuids = getAllUuids(subject, filter.property(),token);
         logger.info("uuids {}", uuids);
 
         // Traer todos los snippets por UUID desde la DB
@@ -196,11 +196,11 @@ public class SnippetService {
         }
     }
 
-    private @NotNull List<UUID> getAllUuids(String subject, Property principal) {
+    private @NotNull List<UUID> getAllUuids(String subject, Property principal, String token) {
         if (principal == Property.BOTH || principal == null) {
             Set<UUID> set = Stream
-                    .concat(userPermissionService.getUserSnippets(subject, AuthorizationActions.ALL).stream(),
-                            userPermissionService.getUserSnippets(subject, AuthorizationActions.READ).stream())
+                    .concat(userPermissionService.getUserSnippets(subject, AuthorizationActions.ALL, token).stream(),
+                            userPermissionService.getUserSnippets(subject, AuthorizationActions.READ, token).stream())
                     .collect(Collectors.toSet());
             return List.copyOf(set);
         }
@@ -208,20 +208,20 @@ public class SnippetService {
                 ? AuthorizationActions.ALL
                 : AuthorizationActions.READ;
         logger.info("getAllUuids {}", authorizationActions);
-        return userPermissionService.getUserSnippets(subject, authorizationActions);
+        return userPermissionService.getUserSnippets(subject, authorizationActions, token);
     }
 
-    public boolean validateSnippet(String subject, UUID snippetId, AuthorizationActions authorizationActions) {
-        return !userPermissionService.getUserSnippets(subject, authorizationActions).contains(snippetId);
+    public boolean validateSnippet(String subject, UUID snippetId, AuthorizationActions authorizationActions, String token) {
+        return !userPermissionService.getUserSnippets(subject, authorizationActions,token).contains(snippetId);
     }
 
-    public ResponseEntity<String> createUser(String userId, AuthorizationActions authorizationActions, UUID snippetId) {
+    public ResponseEntity<String> createUser(String userId, AuthorizationActions authorizationActions, UUID snippetId, String  token) {
         logger.info("Add permission {} to user {} for the snippet {}", authorizationActions, userId, snippetId);
-        return userPermissionService.createUser(userId, authorizationActions, snippetId);
+        return userPermissionService.createUser(userId, authorizationActions, snippetId, token);
     }
 
-    public ResponseEntity<String> deleteSnippetUserAuthorization(UUID id) {
-        return userPermissionService.deleteSnippetUserAuthorization(id);
+    public ResponseEntity<String> deleteSnippetUserAuthorization(UUID id, String token) {
+        return userPermissionService.deleteSnippetUserAuthorization(id,  token);
     }
 
     public ResponseEntity<String> deleteTest(UUID id, String jwt) {
@@ -237,9 +237,9 @@ public class SnippetService {
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
     }
 
-    public List<Snippet> getAllSnippetsByOwner(String subject, Property property) {
+    public List<Snippet> getAllSnippetsByOwner(String subject, Property property, String token) {
         logger.info("Get all snippets by owner {} with property {}", subject, property);
-        List<UUID> uuids = getAllUuids(subject, property);
+        List<UUID> uuids = getAllUuids(subject, property, token);
         logger.info("All uuids: {}", uuids);
         return repository.findAllById(uuids);
     }
@@ -253,7 +253,7 @@ public class SnippetService {
     }
 
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {
-        String userId = userPermissionService.getUserIdBySnippetId(snippetId);
+        String userId = userPermissionService.getUserIdBySnippetId(snippetId, jwt.getTokenValue());
         return authenticationService.getUserNameById(userId, jwt);
     }
 }

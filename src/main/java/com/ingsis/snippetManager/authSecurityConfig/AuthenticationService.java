@@ -16,7 +16,7 @@ public class AuthenticationService {
     private final RestTemplate restTemplate;
     private final String authServiceUrl;
 
-    public AuthenticationService(@Value("http://localhost:8089/") String authServiceUrl) {
+    public AuthenticationService(@Value("${AUTHENTICATION_URL}") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authServiceUrl = authServiceUrl;
     }

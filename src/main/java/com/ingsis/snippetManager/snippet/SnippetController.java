@@ -58,6 +58,7 @@ public class SnippetController {
     @PostMapping("/create/text")
     public ResponseEntity<String> createSnippetFromText(@RequestBody RequestSnippetDTO snippetDTO,
             @AuthenticationPrincipal Jwt jwt) {
+
         Snippet snippet = getSnippetFromText(snippetDTO);
         logger.info("Snippet created {}", snippet.getId());
         String content = snippetDTO.content();
@@ -76,7 +77,7 @@ public class SnippetController {
 
     private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, Jwt jwt) {
         ResponseEntity<String> response = snippetService.createUser(getOwnerId(jwt), AuthorizationActions.ALL,
-                snippet.getId());
+                snippet.getId(), getToken(jwt));
         logger.info("Add permission to user for the snippet");
         if (!response.getStatusCode().is2xxSuccessful()) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -100,7 +101,7 @@ public class SnippetController {
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);
         String owner = getOwnerId(jwt);
-        return updateSnippetCommon(id, snippet, content, owner);
+        return updateSnippetCommon(id, snippet, content, owner,getToken(jwt));
     }
 
     // Update from text
@@ -111,11 +112,11 @@ public class SnippetController {
         Snippet snippet = getSnippetFromText(snippetDTO);
         String content = snippetDTO.content();
         String owner = getOwnerId(jwt);
-        return updateSnippetCommon(id, snippet, content, owner);
+        return updateSnippetCommon(id, snippet, content, owner,getToken(jwt));
     }
 
-    private ResponseEntity<String> updateSnippetCommon(UUID id, Snippet snippet, String content, String owner) {
-        if (snippetService.validateSnippet(owner, id, AuthorizationActions.ALL)) {
+    private ResponseEntity<String> updateSnippetCommon(UUID id, Snippet snippet, String content, String owner, String jwt) {
+        if (snippetService.validateSnippet(owner, id, AuthorizationActions.ALL,jwt)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
         ValidationResult result = snippetService.updateSnippet(id, owner, snippet, content);
@@ -133,12 +134,12 @@ public class SnippetController {
             @RequestBody(required = false) SnippetFilterDTO filterDTO) {
         try {
             if (filterDTO == null) {
-                List<Snippet> snippets = snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH);
+                List<Snippet> snippets = snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH, getToken(jwt));
                 return ResponseEntity.ok(
                         snippets.stream().map(s -> (new DataDTO(s, snippetService.findUserBySnippetId(s.getId(), jwt),
                                 snippetService.downloadSnippetContent(s.getId())))));
             }
-            List<Snippet> snippets = snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO);
+            List<Snippet> snippets = snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO,getToken(jwt));
             return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream()
                     .map(s -> (new SnippetWithLintData(s.snippet(), s.valid(),
                             snippetService.findUserBySnippetId(s.snippet().getId(), jwt),
@@ -161,8 +162,8 @@ public class SnippetController {
         // || !snippetService.validateSnippet(ownerId, s.getId(),
         // AuthorizationActions.READ))
         // .toList();
-        if (snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.ALL)
-                || snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.READ)) {
+        if (snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.ALL,getToken(jwt))
+                || snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.READ,getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.OK).body(snippets);
         }
         return ResponseEntity.ok(snippets);
@@ -173,14 +174,14 @@ public class SnippetController {
         String userId = getOwnerId(jwt);
         try {
             logger.info("Snippet id {}", id);
-            if (snippetService.validateSnippet(userId, id, AuthorizationActions.ALL)) {
+            if (snippetService.validateSnippet(userId, id, AuthorizationActions.ALL,getToken(jwt))) {
                 return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             }
             Snippet snippet = snippetService.getSnippetById(id);
             if (snippet == null) {
                 return ResponseEntity.status(404).body("Snippet not found or not accessible.");
             }
-            ResponseEntity<String> deletedPermissions = snippetService.deleteSnippetUserAuthorization(id);
+            ResponseEntity<String> deletedPermissions = snippetService.deleteSnippetUserAuthorization(id,getToken(jwt));
             if (!deletedPermissions.getStatusCode().is2xxSuccessful()) {
                 return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
             }
@@ -197,9 +198,13 @@ public class SnippetController {
     @PutMapping("/{snippetId}/share")
     public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
             @PathVariable UUID snippetId) {
-        if (!snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL)) {
+        if (!snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL,getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to modify snippet");
         }
-        return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId);
+        return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId,getOwnerId(jwt));
+    }
+
+    private String getToken(Jwt token){
+        return token.getTokenValue();
     }
 }
