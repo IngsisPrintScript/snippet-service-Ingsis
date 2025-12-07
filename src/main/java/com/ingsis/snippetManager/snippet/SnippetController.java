@@ -204,7 +204,7 @@ public class SnippetController {
         if (!snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to modify snippet");
         }
-        return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId,
+        return snippetService.createUser(shareSnippetDTO.userId(), shareSnippetDTO.action() == AuthorizationActions.READ ? AuthorizationActions.READ : AuthorizationActions.ALL, snippetId,
                 getOwnerId(jwt));
     }
 
