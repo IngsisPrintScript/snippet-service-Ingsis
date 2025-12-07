@@ -52,17 +52,15 @@ public class SnippetController {
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);
 
-        return createSnippetCommon(snippet, content, jwt);
+        return createSnippetCommon(snippet, content);
     }
 
     @PostMapping("/create/text")
-    public ResponseEntity<String> createSnippetFromText(@RequestBody RequestSnippetDTO snippetDTO,
-            @AuthenticationPrincipal Jwt jwt) {
-
+    public ResponseEntity<String> createSnippetFromText(@RequestBody RequestSnippetDTO snippetDTO) {
         Snippet snippet = getSnippetFromText(snippetDTO);
         logger.info("Snippet created {}", snippet.getId());
         String content = snippetDTO.content();
-        ResponseEntity<String> str2 = createSnippetCommon(snippet, content, jwt);
+        ResponseEntity<String> str2 = createSnippetCommon(snippet, content);
         logger.info("Saved");
         return str2;
     }
@@ -74,11 +72,21 @@ public class SnippetController {
     private Snippet getSnippetFromText(RequestSnippetDTO fileDTO) {
         return new Converter().convertToSnippet(fileDTO);
     }
+    String token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImNiNVozeWpZVnpXRkV6ZUhSUER5dyJ9."
+            + "eyJpc3MiOiJodHRwczovL2Rldi02dWMwa3VhajdmaGdzeGVhLnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29n"
+            + "bGUtb2F1dGgyfDExMzU4MzA1MjUyNDM3ODQ2MzU1NSIsImF1ZCI6WyJodHRwczovL3NuaXBwZXQtc2VhcmNo"
+            + "LWluZ3NpcyIsImh0dHBzOi8vZGV2LTZ1YzBrdWFqN2ZoZ3N4ZWEudXMuYXV0aDAuY29tL3VzZXJpbmZvIl0s"
+            + "ImlhdCI6MTc2NTEzMDI5NSwiZXhwIjoxNzY1MjE2Njk1LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWls"
+            + "IiwiYXpwIjoiV2pnVW1vSEhnYXFyNzljR2duRXlxa0tQZGJLNVBwT3YifQ."
+            + "X2FFzD8_I8I4pSWmAAjGjUBFggLv3SPzS7FlWXbFt7sEdryu3YuwhOG0mlO7fEwUI5ytV-h0XBM_AL9It2os"
+            + "_6ba6qj_X6J1FOtk3dyfNWYK9b9hXGepc5W5Y9ZH0gFrGMXKhG9wVgiRTewJRw3KgASCwkQzSnPfn581N48Xa"
+            + "u2pV-YP9cqUCFx1jr49Yx0kKCxmtLfH0xFOTinBcAtR0MI1fcoxrxPxvxquYlHRDdvBMQ4I2tKTByRzAVLc9x"
+            + "WZUvSih-YtdU2dRG22Ai_50dc1y02aKJnU_C5l_4ncdh8XBW_3tdN6xVG9wPRpk-8A-2n0nhHrI2QT-fjE7XtBeA";
 
-    private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, Jwt jwt) {
-        ResponseEntity<String> response = snippetService.createUser(getOwnerId(jwt), AuthorizationActions.ALL,
-                snippet.getId(), getToken(jwt));
-        logger.info("Add permission to user for the snippet");
+    private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content) {
+        ResponseEntity<String> response = snippetService.createUser("google-oauth2|113583052524378463555",
+                AuthorizationActions.ALL, snippet.getId(),
+                token);
         if (!response.getStatusCode().is2xxSuccessful()) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
