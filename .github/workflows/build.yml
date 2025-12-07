@@ -17,6 +17,7 @@ jobs:
       java-version: "21"
       environment: "development"
       service_name: "snippet"
+      image_route: "ghcr.io/ingsisprintscript/snippet-service:dev"
     secrets: inherit
   docker:
     needs: call-cd-prod
