@@ -17,4 +17,5 @@ Instalar:
 
 El Repositorio detecta Name (String guardado con formato Text) como si estuviera guardado en bytea y no se le puede hacer un LOWER(), asi que pateamos la query al service
 
+
 ![img.png](img.png)
