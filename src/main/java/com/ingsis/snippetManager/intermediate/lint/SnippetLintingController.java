@@ -93,7 +93,8 @@ public class SnippetLintingController {
     @GetMapping("/snippets/lint-status")
     public ResponseEntity<List<SnippetValidLintingDTO>> getLintStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,getToken(jwt));
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,
+                getToken(jwt));
         List<Snippet> snippets = lintingService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetValidLintingDTO> response = snippets.stream()
                 .map(snippet -> new SnippetValidLintingDTO(snippet, snippet.getLintStatus())).toList();
@@ -103,7 +104,8 @@ public class SnippetLintingController {
     @GetMapping("/status")
     public ResponseEntity<List<GetSnippetLintingStatusDTO>> getLintStatus(@AuthenticationPrincipal Jwt jwt) {
         String userId = getString(jwt);
-        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,getToken(jwt));
+        List<UUID> snippetsOwner = userPermissionService.getUserSnippets(userId, AuthorizationActions.ALL,
+                getToken(jwt));
         List<Snippet> snippets = lintingService.getAllSnippetByOwner(snippetsOwner);
         return ResponseEntity.ok(snippets.stream()
                 .map(snippet -> new GetSnippetLintingStatusDTO(snippet.getId(), snippet.getLintStatus())).toList());
@@ -112,7 +114,7 @@ public class SnippetLintingController {
     private static String getString(Jwt jwt) {
         return jwt.getClaimAsString("sub");
     }
-    private String getToken(Jwt token){
+    private String getToken(Jwt token) {
         return token.getTokenValue();
     }
 }

@@ -205,12 +205,13 @@ public class TestingService {
         return snippetRepo.findAllById(snippetsId);
     }
 
-    public boolean validateTest(String subject, UUID snippetId, AuthorizationActions authorizationActions,String token) {
-        return !userPermissionService.getUserSnippets(subject, authorizationActions,token).contains(snippetId);
+    public boolean validateTest(String subject, UUID snippetId, AuthorizationActions authorizationActions,
+            String token) {
+        return !userPermissionService.getUserSnippets(subject, authorizationActions, token).contains(snippetId);
     }
 
-    public List<UUID> getUserSnippets(String userId, AuthorizationActions authorizationActions,String token) {
-        return userPermissionService.getUserSnippets(userId, authorizationActions,token);
+    public List<UUID> getUserSnippets(String userId, AuthorizationActions authorizationActions, String token) {
+        return userPermissionService.getUserSnippets(userId, authorizationActions, token);
     }
 
     public UUID findSnippetById(UUID testId, String jwtToken) {

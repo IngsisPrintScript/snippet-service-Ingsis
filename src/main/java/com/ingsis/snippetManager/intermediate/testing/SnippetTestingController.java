@@ -37,7 +37,7 @@ public class SnippetTestingController {
     @PostMapping("/create")
     public ResponseEntity<GetTestDTO> createTests(@AuthenticationPrincipal Jwt jwt, @RequestBody TestDTO createDTO) {
         String userId = getOwnerId(jwt);
-        if (testingService.validateTest(userId, createDTO.snippetId(), AuthorizationActions.ALL,getToken(jwt))) {
+        if (testingService.validateTest(userId, createDTO.snippetId(), AuthorizationActions.ALL, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return testingService.createTest(createDTO, jwt.getTokenValue());
@@ -46,7 +46,7 @@ public class SnippetTestingController {
     @PutMapping("/update")
     public ResponseEntity<?> updateTests(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateDTO updateDTO) {
         String userId = getOwnerId(jwt);
-        if (testingService.validateTest(userId, updateDTO.snippetId(), AuthorizationActions.ALL,getToken(jwt))) {
+        if (testingService.validateTest(userId, updateDTO.snippetId(), AuthorizationActions.ALL, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return testingService.updateTest(updateDTO, jwt.getTokenValue());
@@ -56,7 +56,7 @@ public class SnippetTestingController {
     public ResponseEntity<String> deleteParticularTest(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID testId) {
         String userId = getOwnerId(jwt);
         if (testingService.validateTest(userId, testingService.findSnippetById(testId, jwt.getTokenValue()),
-                AuthorizationActions.ALL,getToken(jwt))) {
+                AuthorizationActions.ALL, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return testingService.deleteParticularTest(testId, jwt.getTokenValue());
@@ -67,7 +67,7 @@ public class SnippetTestingController {
             @PathVariable UUID snippetId) {
         String userId = getOwnerId(jwt);
         if (testingService.validateTest(userId, snippetId, AuthorizationActions.ALL, getToken(jwt))
-                || testingService.validateTest(userId, snippetId, AuthorizationActions.READ,getToken(jwt))) {
+                || testingService.validateTest(userId, snippetId, AuthorizationActions.READ, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return testingService.getTestsBySnippetId(snippetId, jwt.getTokenValue());
@@ -78,7 +78,8 @@ public class SnippetTestingController {
             @RequestBody TestToRunDTO testToRunDTO) {
         String userId = getOwnerId(jwt);
         if (testingService.validateTest(userId, testToRunDTO.snippetId(), AuthorizationActions.ALL, getToken(jwt))
-                || testingService.validateTest(userId, testToRunDTO.snippetId(), AuthorizationActions.READ,getToken(jwt))) {
+                || testingService.validateTest(userId, testToRunDTO.snippetId(), AuthorizationActions.READ,
+                        getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return testingService.runParticularTest(testToRunDTO, jwt.getTokenValue());
@@ -87,7 +88,7 @@ public class SnippetTestingController {
     @GetMapping("/snippets/test-status")
     public ResponseEntity<List<SnippetTestsStatusDTO>> getTestsStatuses(@AuthenticationPrincipal Jwt jwt) {
         String userId = getOwnerId(jwt);
-        List<UUID> snippetsOwner = testingService.getUserSnippets(userId, AuthorizationActions.ALL,getToken(jwt));
+        List<UUID> snippetsOwner = testingService.getUserSnippets(userId, AuthorizationActions.ALL, getToken(jwt));
         List<Snippet> snippets = testingService.getAllSnippetByOwner(snippetsOwner);
         List<SnippetTestsStatusDTO> response = snippets.stream()
                 .map(snippet -> new SnippetTestsStatusDTO(snippet.getId(), snippet.getName(),
@@ -102,7 +103,7 @@ public class SnippetTestingController {
     private static String getOwnerId(Jwt jwt) {
         return jwt.getClaimAsString("sub");
     }
-    private String getToken(Jwt token){
+    private String getToken(Jwt token) {
         return token.getTokenValue();
     }
 }
