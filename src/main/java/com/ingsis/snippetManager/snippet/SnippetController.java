@@ -58,7 +58,6 @@ public class SnippetController {
     @PostMapping("/create/text")
     public ResponseEntity<String> createSnippetFromText(@RequestBody RequestSnippetDTO snippetDTO,
             @AuthenticationPrincipal Jwt jwt) {
-
         Snippet snippet = getSnippetFromText(snippetDTO);
         logger.info("Snippet created {}", snippet.getId());
         String content = snippetDTO.content();
