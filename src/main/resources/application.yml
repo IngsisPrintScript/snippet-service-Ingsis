@@ -16,7 +16,6 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${AUTH0_ISSUER_URI}
-          audience: ${AUTH0_AUDIENCE}
   data:
     redis:
       host: ${REDIS_HOST:redis}

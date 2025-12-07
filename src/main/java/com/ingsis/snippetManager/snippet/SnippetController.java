@@ -85,8 +85,7 @@ public class SnippetController {
 
     private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content) {
         ResponseEntity<String> response = snippetService.createUser("google-oauth2|113583052524378463555",
-                AuthorizationActions.ALL, snippet.getId(),
-                token);
+                AuthorizationActions.ALL, snippet.getId(), token);
         if (!response.getStatusCode().is2xxSuccessful()) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
