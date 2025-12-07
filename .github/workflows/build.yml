@@ -16,7 +16,7 @@ jobs:
     with:
       java-version: "21"
       environment: "development"
-      service_name: "snippet-service"
+      service_name: "snippet-service:dev"
     secrets: inherit
   docker:
     needs: call-cd-prod
