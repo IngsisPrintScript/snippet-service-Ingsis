@@ -16,6 +16,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${AUTH0_ISSUER_URI}
+          audience: ${AUTH0_AUDIENCE}
   data:
     redis:
       host: ${REDIS_HOST:redis}
@@ -27,8 +28,6 @@ server:
 
 logging:
   level:
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.security.oauth2.jwt: DEBUG
     root: INFO
   pattern:
     console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"

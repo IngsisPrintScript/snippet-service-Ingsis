@@ -35,9 +35,13 @@ public class AuthenticationService {
                 return response.getBody();
             }
 
-            throw new RuntimeException("User name not found for ID: " + userId);
+            // Return default value instead of throwing exception
+            return "Unknown";
         } catch (Exception e) {
-            throw new RuntimeException("Error fetching username for user " + userId + ": " + e.getMessage(), e);
+            // Log the error but return a default value instead of throwing
+            org.slf4j.LoggerFactory.getLogger(AuthenticationService.class)
+                .warn("Error fetching username for user {}: {}", userId, e.getMessage());
+            return "Unknown";
         }
     }
 
@@ -53,7 +57,10 @@ public class AuthenticationService {
 
             return Boolean.TRUE.equals(response.getBody());
         } catch (Exception e) {
-            throw new RuntimeException("Error checking user existence for " + userId + ": " + e.getMessage(), e);
+            // Log the error but return false instead of throwing
+            org.slf4j.LoggerFactory.getLogger(AuthenticationService.class)
+                .warn("Error checking user existence for {}: {}", userId, e.getMessage());
+            return false;
         }
     }
 }

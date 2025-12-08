@@ -40,15 +40,15 @@ public class UserPermissionService {
 
             HttpEntity<CreatePermission> request = new HttpEntity<>(createPermission, headers);
 
-            logger.info("url: {}", authorizationServiceUrl + "/permissions");
-
             ResponseEntity<String> response = restTemplate.postForEntity(authorizationServiceUrl + "/permissions",
                     request, String.class);
 
-            logger.info("response: {}", response.getStatusCode());
-
             return ResponseEntity.ok(response.getBody());
+        } catch (HttpClientErrorException e) {
+            logger.error("Error creating user permission: {} - Status: {}", e.getMessage(), e.getStatusCode());
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
+            logger.error("Error creating user permission: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
@@ -121,11 +121,12 @@ public class UserPermissionService {
             HttpEntity<UUID> request = new HttpEntity<>(snippetId, headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    authorizationServiceUrl + "/permissions?snippetId=" + snippetId, HttpMethod.DELETE, request,
+                    authorizationServiceUrl + "/permissions", HttpMethod.DELETE, request,
                     String.class);
 
             return ResponseEntity.ok().body(response.getBody());
         } catch (Exception e) {
+            logger.error("Error deleting snippet permissions: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }

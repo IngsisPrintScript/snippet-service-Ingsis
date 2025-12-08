@@ -12,7 +12,8 @@ public record AudienceValidator(String audience) implements OAuth2TokenValidator
         if (token.getAudience().contains(audience)) {
             return OAuth2TokenValidatorResult.success();
         }
-        OAuth2Error error = new OAuth2Error("invalid_token", "The required audience is missing", null);
+        OAuth2Error error = new OAuth2Error("invalid_token", 
+            "The required audience is missing. Expected: " + audience + ", Found: " + token.getAudience(), null);
         return OAuth2TokenValidatorResult.failure(error);
     }
 }

@@ -177,12 +177,21 @@ public class SnippetService {
     }
 
     public String downloadSnippetContent(UUID snippetId) {
-        logger.info("Downloading snippet content for snippet with id: {}", snippetId);
-        Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        logger.info("Snippet with id {}", snippet.getId());
-        String content = assetService.getSnippet(snippetId).getBody();
-        logger.info("Content bytes: {}", content);
-        return content;
+        try {
+            Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
+            ResponseEntity<String> response = assetService.getSnippet(snippetId);
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                logger.warn("AssetService returned non-2xx status {} for snippet {}", response.getStatusCode(), snippetId);
+                return "";
+            }
+            
+            String content = response.getBody();
+            return content != null ? content : "";
+        } catch (Exception e) {
+            logger.error("Error downloading snippet content for {}: {}", snippetId, e.getMessage(), e);
+            return "";
+        }
     }
 
     public ResponseEntity<String> deleteSnippet(UUID snippetId) {

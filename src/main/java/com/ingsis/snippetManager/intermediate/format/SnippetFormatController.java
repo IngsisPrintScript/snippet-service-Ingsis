@@ -5,6 +5,7 @@ import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetController;
+import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.format.GetSnippetFormatStatusDTO;
 import com.ingsis.snippetManager.snippet.dto.format.SnippetValidFormatDTO;
 import com.ingsis.snippetManager.snippet.dto.lintingDTO.CreateDTO;
@@ -43,11 +44,16 @@ public class SnippetFormatController {
             @PathVariable String snippetId) {
         try {
             String ownerId = getString(jwt);
-            Snippet contentDTO = (snippetController.getSnippetById(jwt, snippetId)).getBody();
-            if (contentDTO == null) {
+            ResponseEntity<DataDTO> response = snippetController.getSnippetById(jwt, snippetId);
+            if (response == null || response.getBody() == null) {
                 return ResponseEntity.badRequest().build();
             }
-            SnippetFormatStatus passes = formatService.formatContent(contentDTO, ownerId);
+            DataDTO dataDTO = response.getBody();
+            Snippet snippet = dataDTO.snippet();
+            if (snippet == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            SnippetFormatStatus passes = formatService.formatContent(snippet, ownerId);
             return ResponseEntity.ok(passes);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(SnippetFormatStatus.FAILED);

@@ -51,8 +51,10 @@ public class SnippetController {
 
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);
+        String ownerId = getOwnerId(jwt);
+        String token = getToken(jwt);
 
-        return createSnippetCommon(snippet, content, jwt);
+        return createSnippetCommon(snippet, content, ownerId, token);
     }
 
     @PostMapping("/create/text")
@@ -61,7 +63,9 @@ public class SnippetController {
         Snippet snippet = getSnippetFromText(snippetDTO);
         logger.info("Snippet created {}", snippet.getId());
         String content = snippetDTO.content();
-        ResponseEntity<String> str2 = createSnippetCommon(snippet, content, jwt);
+        String ownerId = getOwnerId(jwt);
+        String token = getToken(jwt);
+        ResponseEntity<String> str2 = createSnippetCommon(snippet, content, ownerId, token);
         logger.info("Saved");
         return str2;
     }
@@ -73,11 +77,10 @@ public class SnippetController {
     private Snippet getSnippetFromText(RequestSnippetDTO fileDTO) {
         return new Converter().convertToSnippet(fileDTO);
     }
-
-    private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, Jwt jwt) {
-        ResponseEntity<String> response = snippetService.createUser(getOwnerId(jwt), AuthorizationActions.ALL,
-                snippet.getId(), getToken(jwt));
-        logger.info("Add permission to user for the snippet");
+    private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, String ownerId, String token) {
+        ResponseEntity<String> response = snippetService.createUser(ownerId,
+                AuthorizationActions.ALL, snippet.getId(),
+                token);
         if (!response.getStatusCode().is2xxSuccessful()) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -133,42 +136,80 @@ public class SnippetController {
     public ResponseEntity<?> getSnippets(@AuthenticationPrincipal Jwt jwt,
             @RequestBody(required = false) SnippetFilterDTO filterDTO) {
         try {
+            logger.info("Getting snippets for user: {}", getOwnerId(jwt));
             if (filterDTO == null) {
                 List<Snippet> snippets = snippetService.getAllSnippetsByOwner(getOwnerId(jwt), Property.BOTH,
                         getToken(jwt));
-                return ResponseEntity.ok(
-                        snippets.stream().map(s -> (new DataDTO(s, snippetService.findUserBySnippetId(s.getId(), jwt),
-                                snippetService.downloadSnippetContent(s.getId())))));
+                logger.info("Found {} snippets", snippets.size());
+                List<DataDTO> result = snippets.stream().map(s -> {
+                    try {
+                        String userName = snippetService.findUserBySnippetId(s.getId(), jwt);
+                        String content = snippetService.downloadSnippetContent(s.getId());
+                        return new DataDTO(s, userName, content);
+                    } catch (Exception e) {
+                        logger.error("Error processing snippet {}: {}", s.getId(), e.getMessage(), e);
+                        // Return snippet with default values if there's an error
+                        return new DataDTO(s, "Unknown", "");
+                    }
+                }).toList();
+                return ResponseEntity.ok(result);
             }
             List<Snippet> snippets = snippetService.getSnippetsBy(getOwnerId(jwt), filterDTO, getToken(jwt));
-            return ResponseEntity.ok(snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream()
-                    .map(s -> (new SnippetWithLintData(s.snippet(), s.valid(),
-                            snippetService.findUserBySnippetId(s.snippet().getId(), jwt),
-                            snippetService.downloadSnippetContent(s.snippet().getId())))));
+            List<SnippetWithLintData> result = snippetService.filterValidSnippets(snippets, filterDTO, getOwnerId(jwt)).stream()
+                    .map(s -> {
+                        try {
+                            String userName = snippetService.findUserBySnippetId(s.snippet().getId(), jwt);
+                            String content = snippetService.downloadSnippetContent(s.snippet().getId());
+                            return new SnippetWithLintData(s.snippet(), s.valid(), userName, content);
+                        } catch (Exception e) {
+                            logger.error("Error processing snippet {}: {}", s.snippet().getId(), e.getMessage(), e);
+                            // Return snippet with default values if there's an error
+                            return new SnippetWithLintData(s.snippet(), s.valid(), "Unknown", "");
+                        }
+                    }).toList();
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error getting the snippets: " + e.getMessage());
+            logger.error("Error getting snippets: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error getting the snippets: " + e.getMessage() + 
+                    (e.getCause() != null ? " - Cause: " + e.getCause().getMessage() : ""));
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Snippet> getSnippetById(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
-        String ownerId = getOwnerId(jwt);
-        Snippet snippets = snippetService.getSnippetById(UUID.fromString(id));
-        // if (snippets == null || snippets.isEmpty()) {
-        // return ResponseEntity.ok(Collections.emptyList());
-        // }
-        // List<Snippet> allowedSnippets = snippets.stream()
-        // .filter(s -> !snippetService.validateSnippet(ownerId, s.getId(),
-        // AuthorizationActions.ALL)
-        // || !snippetService.validateSnippet(ownerId, s.getId(),
-        // AuthorizationActions.READ))
-        // .toList();
-        if (snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.ALL, getToken(jwt))
-                || snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.READ,
-                        getToken(jwt))) {
-            return ResponseEntity.status(HttpStatus.OK).body(snippets);
+    public ResponseEntity<DataDTO> getSnippetById(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
+        try {
+            String ownerId = getOwnerId(jwt);
+            Snippet snippet = snippetService.getSnippetById(UUID.fromString(id));
+            if (snippet == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Verificar permisos - validateSnippet retorna true si NO tiene permisos
+            // Si no tiene permisos ALL Y no tiene permisos READ, entonces está prohibido
+            boolean hasAllPermission = !snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.ALL, getToken(jwt));
+            boolean hasReadPermission = !snippetService.validateSnippet(ownerId, UUID.fromString(id), AuthorizationActions.READ, getToken(jwt));
+            
+            if (!hasAllPermission && !hasReadPermission) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            // Obtener el contenido y el owner
+            String userName = "Unknown";
+            String content = "";
+            try {
+                userName = snippetService.findUserBySnippetId(snippet.getId(), jwt);
+                content = snippetService.downloadSnippetContent(snippet.getId());
+            } catch (Exception e) {
+                logger.warn("Error getting snippet details for {}: {}", id, e.getMessage());
+                // Continuar con valores por defecto
+            }
+            
+            DataDTO dataDTO = new DataDTO(snippet, userName, content);
+            return ResponseEntity.ok(dataDTO);
+        } catch (Exception e) {
+            logger.error("Error getting snippet by id {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return ResponseEntity.ok(snippets);
     }
 
     @DeleteMapping("/{id}")
@@ -188,10 +229,11 @@ public class SnippetController {
             if (!deletedPermissions.getStatusCode().is2xxSuccessful()) {
                 return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
             }
-            ResponseEntity<String> deleteTest = snippetService.deleteTest(id, jwt.getTokenValue());
-            if (!deleteTest.getStatusCode().is2xxSuccessful()) {
-                return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
-            }
+            // TODO: Descomentar cuando el microservicio de tests esté disponible
+            // ResponseEntity<String> deleteTest = snippetService.deleteTest(id, jwt.getTokenValue());
+            // if (!deleteTest.getStatusCode().is2xxSuccessful()) {
+            //     return ResponseEntity.status(404).body("Permissions for snippet " + id + " could not be deleted.");
+            // }
             return snippetService.deleteSnippet(id);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error deleting snippet: " + e.getMessage());
@@ -201,11 +243,21 @@ public class SnippetController {
     @PutMapping("/{snippetId}/share")
     public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
             @PathVariable UUID snippetId) {
-        if (!snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to modify snippet");
+        try {
+            // validateSnippet retorna true si el usuario NO tiene permisos
+            // Por lo tanto, si retorna true, debemos denegar el acceso
+            boolean hasNoPermissions = snippetService.validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt));
+            
+            if (hasNoPermissions) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to modify snippet");
+            }
+            
+            return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId,
+                    getToken(jwt));
+        } catch (Exception e) {
+            logger.error("SnippetController.shareSnippet - Error: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sharing snippet: " + e.getMessage());
         }
-        return snippetService.createUser(shareSnippetDTO.userId(), AuthorizationActions.READ, snippetId,
-                getOwnerId(jwt));
     }
 
     private String getToken(Jwt token) {

@@ -97,10 +97,42 @@ jacocoTestReport {
 	}
 }
 
+// Función para leer archivo .env y retornar un Map con las variables
+def loadEnvFile() {
+	def envVars = [:]
+	def envFile = file('.env')
+	if (envFile.exists()) {
+		envFile.readLines().each { line ->
+			line = line.trim()
+			if (line && !line.startsWith('#') && line.contains('=')) {
+				def parts = line.split('=', 2)
+				if (parts.length == 2) {
+					def key = parts[0].trim()
+					def value = parts[1].trim()
+					if (key && value) {
+						envVars[key] = value
+					}
+				}
+			}
+		}
+	}
+	return envVars
+}
+
+// Configurar bootRun para usar variables de entorno del .env
 bootRun {
-	jvmArgs = [
-			"-javaagent:${projectDir}/newrelic/extracted/newrelic.jar"
-	]
+	environment = loadEnvFile()
+	// Configurar directorio temporal para evitar problemas de permisos en Windows
+	def tempDir = System.getenv('TEMP') ?: System.getenv('TMP') ?: System.getProperty('java.io.tmpdir') ?: "${System.getProperty('user.home')}/AppData/Local/Temp"
+	systemProperty 'java.io.tmpdir', tempDir
+	
+	// New Relic solo si el archivo existe
+	def newrelicJar = file("${projectDir}/newrelic/extracted/newrelic.jar")
+	if (newrelicJar.exists()) {
+		jvmArgs = [
+			"-javaagent:${newrelicJar.absolutePath}"
+		]
+	}
 }
 
 spotless {
