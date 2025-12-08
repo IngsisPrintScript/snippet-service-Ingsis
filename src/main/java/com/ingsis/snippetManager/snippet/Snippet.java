@@ -26,12 +26,9 @@ public class Snippet {
     @NotBlank
     @Column(name = "name", columnDefinition = "TEXT")
     private String name;
-
     private String description;
-
     @NotBlank
     private String language;
-
     private String version;
 
     @ElementCollection
@@ -112,5 +109,29 @@ public class Snippet {
 
     public void setTestStatusList(List<TestStatus> testStatusList) {
         this.testStatusList = testStatusList;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public void setTestId(List<UUID> testId) {
+        this.testId = testId;
     }
 }
