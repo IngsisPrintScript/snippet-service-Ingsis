@@ -1,5 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
+import com.ingsis.snippetManager.intermediate.engine.dto.response.RunSnippetResponseDTO;
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,21 +39,19 @@ public class SnippetController {
 
     private final SnippetService snippetService;
     private static final Logger logger = LoggerFactory.getLogger(SnippetController.class);
+    private final Converter converter;
 
-    public SnippetController(SnippetService snippetService) {
+    public SnippetController(SnippetService snippetService, Converter converter) {
         this.snippetService = snippetService;
-    }
-
-    private static String getOwnerId(Jwt jwt) {
-        return jwt.getClaimAsString("sub");
+        this.converter = converter;
     }
 
     private Snippet getSnippetFromFile(RequestFileDTO fileDTO) {
-        return new Converter().convertFileToSnippet(fileDTO);
+        return converter.convertFileToSnippet(fileDTO);
     }
 
     private Snippet getSnippetFromText(RequestSnippetDTO fileDTO) {
-        return new Converter().convertToSnippet(fileDTO);
+        return converter.convertToSnippet(fileDTO);
     }
 
     private ResponseEntity<String> createSnippetCommon(Snippet snippet, String content, Jwt jwt) {
@@ -133,6 +133,7 @@ public class SnippetController {
             return ResponseEntity.badRequest().build();
         }
     }
+
     @GetMapping("/All")
     public ResponseEntity<List<SnippetWithLintData>> getAllSnippets(@AuthenticationPrincipal Jwt jwt) {
         return getAll(jwt);
@@ -160,5 +161,23 @@ public class SnippetController {
     public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
             @PathVariable UUID snippetId) {
         return snippetService.shareSnippet(snippetId, jwt, shareSnippetDTO);
+    }
+
+    @GetMapping("/{snippetId}/download")
+    public ResponseEntity<byte[]> downloadSnippet(@PathVariable UUID snippetId,
+            @RequestParam(defaultValue = "original") String version, @AuthenticationPrincipal Jwt jwt) {
+        try {
+            return ResponseEntity.ok(snippetService.download(jwt, version, snippetId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/{snippetId}/execute")
+    public ResponseEntity<RunSnippetResponseDTO> executeSnippet(@AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID snippetId, @RequestBody List<String> inputs) {
+        return ResponseEntity.ok(snippetService.execute(snippetId, jwt, inputs));
     }
 }

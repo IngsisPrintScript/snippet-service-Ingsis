@@ -1,6 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.redis.testing.dto.SnippetTestStatus;
+import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,7 +22,7 @@ public class TestStatus {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SnippetTestStatus testStatus;
+    private SnippetStatus testStatus;
 
     private UUID testId;
 
@@ -34,7 +34,7 @@ public class TestStatus {
         return id;
     }
 
-    public SnippetTestStatus getTestStatus() {
+    public SnippetStatus getTestStatus() {
         return testStatus;
     }
 
@@ -50,7 +50,7 @@ public class TestStatus {
         return snippet;
     }
 
-    public void setTestStatus(SnippetTestStatus testStatus) {
+    public void setTestStatus(SnippetStatus testStatus) {
         this.testStatus = testStatus;
     }
 }

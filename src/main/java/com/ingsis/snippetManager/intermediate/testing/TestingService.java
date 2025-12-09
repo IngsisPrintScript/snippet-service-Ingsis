@@ -3,8 +3,7 @@ package com.ingsis.snippetManager.intermediate.testing;
 import com.azure.core.exception.ResourceNotFoundException;
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
-import com.ingsis.snippetManager.redis.testing.TestRequestProducer;
-import com.ingsis.snippetManager.redis.testing.dto.TestRequestEvent;
+import com.ingsis.snippetManager.redis.requestProducer.TestRequestProducer;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.testing.GetTestDTO;
@@ -175,10 +174,12 @@ public class TestingService {
     }
 
     public void runTestCase(TestToRunDTO dto, UUID snippetId) {
-        logger.info("Testing {} case ", dto.testCaseId());
-        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
-        TestRequestEvent event = new TestRequestEvent(snippetId, snippet.getLanguage());
-        testRequestProducer.publish(event);
+        // logger.info("Testing {} case ", dto.testCaseId());
+        // Snippet snippet =
+        // snippetRepo.findById(snippetId).orElseThrow(NoSuchElementException::new);
+        // TestRequestEvent event = new TestRequestEvent(snippetId,
+        // snippet.getLanguage());
+        // testRequestProducer.publish(event);
     }
 
     public ResponseEntity<TestRunResultDTO> runParticularTest(TestToRunDTO dto, String jwtToken) {

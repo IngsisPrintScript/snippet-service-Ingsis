@@ -3,6 +3,7 @@ package com.ingsis.snippetManager.intermediate.azureStorageConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -36,6 +37,36 @@ public class AssetService {
         return bucketUrl + "/" + container + "/" + key.toString();
     }
 
+    private java.util.Map<String, String> getCorrelationHeader() {
+        java.util.Map<String, String> headers = new java.util.HashMap<>();
+        String correlationId = MDC.get(CORRELATION_ID_KEY);
+        if (Objects.nonNull(correlationId)) {
+            headers.put("X-Correlation-Id", correlationId);
+        }
+        return headers;
+    }
+
+    @NotNull
+    private ResponseEntity<String> getStringResponseEntity(String url) {
+        try {
+            logger.info("Getting snippet from Url: {}", url);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAll(getCorrelationHeader());
+
+            HttpEntity<Void> request = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (HttpClientErrorException e) {
+            logger.error("Snippet not found, status: {}", e.getStatusCode());
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            logger.error("Error getting snippet", e);
+            return ResponseEntity.badRequest().body("Error getting snippet: " + e.getMessage());
+        }
+    }
+
     public ResponseEntity<String> saveSnippet(UUID snippetId, String content) {
         try {
             String url = buildUrl(snippetId);
@@ -60,24 +91,13 @@ public class AssetService {
     }
 
     public ResponseEntity<String> getSnippet(UUID snippetId) {
-        try {
-            String url = buildUrl(snippetId);
-            logger.info("Getting snippet from Url: {}", url);
+        String url = buildUrl(snippetId);
+        return getStringResponseEntity(url);
+    }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setAll(getCorrelationHeader());
-
-            HttpEntity<Void> request = new HttpEntity<>(headers);
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
-
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
-        } catch (HttpClientErrorException e) {
-            logger.error("Snippet not found, status: {}", e.getStatusCode());
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            logger.error("Error getting snippet", e);
-            return ResponseEntity.badRequest().body("Error getting snippet: " + e.getMessage());
-        }
+    public ResponseEntity<String> getFormattedSnippet(UUID snippetId) {
+        String url = buildUrl(snippetId) + "/formatted";
+        return getStringResponseEntity(url);
     }
 
     public ResponseEntity<String> deleteSnippet(UUID snippetId) {
@@ -99,14 +119,5 @@ public class AssetService {
             logger.error("Error deleting snippet", e);
             return ResponseEntity.badRequest().body("Error deleting snippet: " + e.getMessage());
         }
-    }
-
-    private java.util.Map<String, String> getCorrelationHeader() {
-        java.util.Map<String, String> headers = new java.util.HashMap<>();
-        String correlationId = MDC.get(CORRELATION_ID_KEY);
-        if (Objects.nonNull(correlationId)) {
-            headers.put("X-Correlation-Id", correlationId);
-        }
-        return headers;
     }
 }

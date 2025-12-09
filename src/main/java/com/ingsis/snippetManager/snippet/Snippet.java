@@ -1,7 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.redis.format.dto.SnippetFormatStatus;
-import com.ingsis.snippetManager.redis.lint.dto.SnippetLintStatus;
+import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -40,10 +39,10 @@ public class Snippet {
     private List<TestStatus> testStatusList = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    private SnippetLintStatus lintStatus = SnippetLintStatus.NOT_LINTED;
+    private SnippetStatus lintStatus = SnippetStatus.TO_DO;
 
     @Enumerated(EnumType.STRING)
-    private SnippetFormatStatus formatStatus = SnippetFormatStatus.NOT_FORMAT;
+    private SnippetStatus formatStatus = SnippetStatus.TO_DO;
 
     public Snippet() {
     }
@@ -87,22 +86,21 @@ public class Snippet {
         return testId;
     }
 
-    public SnippetLintStatus getLintStatus() {
+    public SnippetStatus getLintStatus() {
         return lintStatus;
     }
 
-    public SnippetFormatStatus getFormatStatus() {
+    public SnippetStatus getFormatStatus() {
         return formatStatus;
     }
 
-    public void setFormatStatus(SnippetFormatStatus formatStatus) {
+    public void setFormatStatus(SnippetStatus formatStatus) {
         this.formatStatus = formatStatus;
     }
 
-    public void setLintStatus(SnippetLintStatus lintStatus) {
+    public void setLintStatus(SnippetStatus lintStatus) {
         this.lintStatus = lintStatus;
     }
-
     public List<TestStatus> getTestStatusList() {
         return testStatusList;
     }

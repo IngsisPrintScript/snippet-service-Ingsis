@@ -39,16 +39,17 @@ public class UserPermissionService {
             headers.setBearerAuth(token);
 
             HttpEntity<CreatePermission> request = new HttpEntity<>(createPermission, headers);
-
-            logger.info("url: {}", authorizationServiceUrl + "/permissions");
-
             ResponseEntity<String> response = restTemplate.postForEntity(authorizationServiceUrl + "/permissions",
                     request, String.class);
 
-            logger.info("response: {}", response.getStatusCode());
-
             return ResponseEntity.ok(response.getBody());
+        } catch (HttpClientErrorException e) {
+            logger.error("Error creating user permission: {} - Status: {} in the URL: {}", e.getMessage(),
+                    e.getStatusCode(), authorizationServiceUrl + "/permissions");
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
+            logger.error("Error creating user permission: {} in the URL: {}", e.getMessage(),
+                    authorizationServiceUrl + "/permissions");
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
@@ -120,12 +121,13 @@ public class UserPermissionService {
 
             HttpEntity<UUID> request = new HttpEntity<>(snippetId, headers);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    authorizationServiceUrl + "/permissions?snippetId=" + snippetId, HttpMethod.DELETE, request,
-                    String.class);
+            ResponseEntity<String> response = restTemplate.exchange(authorizationServiceUrl + "/permissions",
+                    HttpMethod.DELETE, request, String.class);
 
             return ResponseEntity.ok().body(response.getBody());
         } catch (Exception e) {
+            logger.error("Error deleting snippet permissions: {} at the url {}", e.getMessage(),
+                    authorizationServiceUrl + "/permissions");
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
