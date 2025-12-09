@@ -11,7 +11,7 @@ import com.ingsis.snippetManager.intermediate.engine.supportedLanguage.Supported
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.rules.RuleService;
-import com.ingsis.snippetManager.intermediate.testing.TestingService;
+import com.ingsis.snippetManager.intermediate.test.TestingService;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Order;
@@ -129,7 +129,7 @@ public class SnippetService {
                 logger.info("Snippet deleted");
                 return e.getMessage();
             }
-            testingService.runAllTestsForSnippet(snippet.getId());
+            testingService.runAllTestsForSnippet(snippet.getId(), jwt);
         }
         return result.message();
     }
@@ -267,7 +267,7 @@ public class SnippetService {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
         Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        List<GetTestDTO> test = testingService.getTestsBySnippetId(snippetId, getToken(jwt)).getBody();
+        List<GetTestDTO> test = testingService.getTestsBySnippetId(snippetId, jwt);
         try {
             deleteSnippetUserAuthorization(jwt, snippetId);
             deleteTest(jwt, snippetId);
@@ -277,9 +277,8 @@ public class SnippetService {
             createUser(snippet, jwt, AuthorizationActions.ALL);
             List<GetTestDTO> list = test == null ? List.of() : test;
             for (GetTestDTO getTestDTO : list) {
-                testingService.createTest(
-                        new TestDTO(snippetId, getTestDTO.name(), getTestDTO.inputs(), getTestDTO.outputs()),
-                        getToken(jwt));
+                testingService.createTestSnippets(
+                        new TestDTO(snippetId, getTestDTO.name(), getTestDTO.inputs(), getTestDTO.outputs()));
             }
             repository.save(snippet);
             assetService.saveSnippet(snippetId, assetService.getSnippet(snippetId).getBody());
@@ -300,7 +299,7 @@ public class SnippetService {
     }
 
     public ResponseEntity<String> deleteTest(Jwt jwt, UUID snippetId) {
-        return testingService.deleteTestsBySnippet(snippetId, getToken(jwt));
+        return ResponseEntity.ok(testingService.deleteTestsBySnippet(snippetId));
     }
 
     public DataDTO getSnippetById(UUID id, Jwt jwt) {

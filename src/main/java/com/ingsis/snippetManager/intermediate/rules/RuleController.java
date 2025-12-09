@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequestMapping("/rules")
 public class RuleController {
@@ -35,7 +34,7 @@ public class RuleController {
 
     @PostMapping
     public ResponseEntity<Rule> createRule(@RequestParam String name, @RequestParam String value,
-                                           @RequestParam RuleType type, @AuthenticationPrincipal Jwt jwt) {
+            @RequestParam RuleType type, @AuthenticationPrincipal Jwt jwt) {
         Rule rule = ruleService.createRule(name, value, jwt, type);
         return ResponseEntity.ok(rule);
     }
