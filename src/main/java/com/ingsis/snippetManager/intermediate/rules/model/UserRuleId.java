@@ -7,14 +7,14 @@ import java.util.UUID;
 public class UserRuleId implements Serializable {
 
     private String userId;
-    private UUID ruleSetId;
+    private UUID ruleId;
 
     public UserRuleId() {
     }
 
     public UserRuleId(String userId, UUID ruleSetId) {
         this.userId = userId;
-        this.ruleSetId = ruleSetId;
+        this.ruleId = ruleSetId;
     }
 
     @Override
@@ -23,11 +23,11 @@ public class UserRuleId implements Serializable {
             return true;
         if (!(o instanceof UserRuleId that))
             return false;
-        return userId.equals(that.userId) && ruleSetId.equals(that.ruleSetId);
+        return userId.equals(that.userId) && ruleId.equals(that.ruleId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userId, ruleSetId);
+        return Objects.hash(userId, ruleId);
     }
 }

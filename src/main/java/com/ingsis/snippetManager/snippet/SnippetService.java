@@ -1,6 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
-import com.ingsis.snippetManager.authSecurityConfig.AuthenticationService;
+import com.ingsis.snippetManager.authentication.AuthenticationService;
 import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.intermediate.engine.EngineService;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.RunSnippetRequestDTO;
@@ -14,11 +14,13 @@ import com.ingsis.snippetManager.intermediate.rules.RuleService;
 import com.ingsis.snippetManager.intermediate.test.TestingService;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
+import com.ingsis.snippetManager.snippet.dto.PaginatedSnippets;
 import com.ingsis.snippetManager.snippet.dto.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
-import com.ingsis.snippetManager.snippet.dto.lintingDTO.SnippetValidLintingDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.ShareDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
+import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetResponseDTO;
+import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetWithLintData;
 import com.ingsis.snippetManager.snippet.dto.testing.GetTestDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.TestDTO;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +35,6 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -91,18 +92,54 @@ public class SnippetService {
         return userPermissionService.getUserSnippets(subject, authorizationActions, token);
     }
 
-    public String createSnippet(Snippet snippet, Jwt jwt, AuthorizationActions actions, String content) {
-        ResponseEntity<String> user = createUser(snippet, jwt, actions);
-        if (!user.getStatusCode().is2xxSuccessful()) {
-            throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
+    public SnippetResponseDTO createSnippet(
+            Snippet snippet,
+            Jwt jwt,
+            AuthorizationActions actions,
+            String content
+    ) {
+        try {
+            ResponseEntity<String> user = createUser(snippet, jwt, actions);
+            if (!user.getStatusCode().is2xxSuccessful()) {
+                throw new NoSuchElementException("Forbidden");
+            }
+            saveSnippetContent(snippet.getId(), content);
+            ValidationResult result = ruleService.validateSnippet(
+                    new SimpleRunSnippet(
+                            snippet.getId(),
+                            SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
+                            snippet.getVersion()
+                    ),
+                    jwt
+            );
+
+            if (!result.valid()) {
+                deleteSnippetUserAuthorization(jwt, snippet.getId());
+                assetService.deleteSnippet(snippet.getId());
+                return new SnippetResponseDTO(
+                        snippet,
+                        jwt.getSubject(),
+                        content,
+                        "false"
+                );
+            }
+            repository.save(snippet);
+            return new SnippetResponseDTO(
+                    snippet,
+                    jwt.getSubject(),
+                    content,
+                    "true"
+            );
+        } catch (Exception e) {
+            deleteSnippetUserAuthorization(jwt, snippet.getId());
+            assetService.deleteSnippet(snippet.getId());
+            return new SnippetResponseDTO(
+                    snippet,
+                    jwt.getSubject(),
+                    content,
+                    "false"
+            );
         }
-        ValidationResult result = ruleService.validateSnippet(new SimpleRunSnippet(snippet.getId(),
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()), jwt);
-        if (!result.valid()) {
-            return result.message();
-        }
-        repository.save(snippet);
-        return saveSnippetContent(snippet.getId(), content).getBody();
     }
 
     public String updateSnippet(UUID id, Jwt jwt, Snippet updatedSnippet, String content) {
@@ -134,94 +171,69 @@ public class SnippetService {
         return result.message();
     }
 
-    public List<Snippet> getSnippetsWithFilter(SnippetFilterDTO filter, Jwt jwt) {
-        Sort sort = Sort.unsorted();
-        logger.info("snippets unsorted");
-
-        if (filter.sortBy() != null && filter.order() != null) {
-            Sort.Direction direction = (filter.order() == Order.DESC) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            logger.info("Sort by direction {}", direction);
-
-            String sortField = switch (filter.sortBy()) {
-                case LANGUAGE -> "language";
-                case NAME -> "name";
-                case VALID -> "";
-            };
-            if (!sortField.isEmpty()) {
-                logger.info("Sort by {}", sortField);
-                sort = Sort.by(direction, sortField);
+    public PaginatedSnippets getFilteredSnippets(SnippetFilterDTO filterDTO, int page, int pageSize, Jwt jwt) {
+        logger.info("Start filtering snippets");
+        List<UUID> uuids = getAllUuids(getOwnerId(jwt), filterDTO != null ? filterDTO.property() : Property.BOTH,
+                getToken(jwt));
+        logger.info("UUDIS: {}", uuids.size());
+        List<Snippet> snippets = repository.findAllById(uuids);
+        logger.info("Found {} snippets", snippets.size());
+        if (filterDTO != null) {
+            if (filterDTO.name() != null && !filterDTO.name().isEmpty()) {
+                String nameFilter = filterDTO.name().toLowerCase();
+                snippets = snippets.stream()
+                        .filter(s -> s.getName() != null && s.getName().toLowerCase().contains(nameFilter)).toList();
+            }
+            if (filterDTO.language() != null && !filterDTO.language().isEmpty()) {
+                String languageFilter = filterDTO.language().toLowerCase();
+                snippets = snippets.stream()
+                        .filter(s -> s.getLanguage() != null && s.getLanguage().equalsIgnoreCase(languageFilter))
+                        .toList();
             }
         }
-
-        boolean noFilters = (filter.name() == null || filter.name().isEmpty())
-                && (filter.language() == null || filter.language().isEmpty()) && filter.valid() == null
-                && filter.property() == null;
-        logger.info("noFilters {}", noFilters);
-        if (noFilters) {
-            return getAllSnippetsByOwner(jwt, Property.OWNER);
-        }
-
-        String nameFilter = (filter.name() != null && !filter.name().isEmpty()) ? filter.name().toLowerCase() : null;
-        logger.info("nameFilter : {}", nameFilter);
-        String languageFilter = (filter.language() != null && !filter.language().isEmpty())
-                ? filter.language().toLowerCase()
-                : null;
-        logger.info("languageFilter : {}", languageFilter);
-
-        List<UUID> uuids = getAllUuids(getOwnerId(jwt), filter.property(), getToken(jwt));
-        logger.info("uuids {}", uuids);
-
-        // Traer todos los snippets por UUID desde la DB
-        List<Snippet> snippets = repository.findAllById(uuids);
-
-        // Filtrado en memoria
-        if (nameFilter != null) {
-            snippets = snippets.stream()
-                    .filter(s -> s.getName() != null && s.getName().toLowerCase().contains(nameFilter))
-                    .collect(Collectors.toList());
-        }
-
-        if (languageFilter != null) {
-            snippets = snippets.stream()
-                    .filter(s -> s.getLanguage() != null && s.getLanguage().toLowerCase().equals(languageFilter))
-                    .collect(Collectors.toList());
-        }
-        if (!sort.isUnsorted()) {
-            Comparator<Snippet> comparator = switch (filter.sortBy()) {
+        if (filterDTO != null && filterDTO.sortBy() != null) {
+            Comparator<Snippet> comparator = switch (filterDTO.sortBy()) {
                 case LANGUAGE ->
                     Comparator.comparing(Snippet::getLanguage, Comparator.nullsLast(String::compareToIgnoreCase));
                 case NAME -> Comparator.comparing(Snippet::getName, Comparator.nullsLast(String::compareToIgnoreCase));
-                default -> null;
             };
-            if (comparator != null) {
-                if (filter.order() == Order.DESC) {
-                    comparator = comparator.reversed();
-                }
-                snippets = snippets.stream().sorted(comparator).toList();
+            if (filterDTO.order() == Order.DESC) {
+                comparator = comparator.reversed();
             }
+            snippets = snippets.stream().sorted(comparator).toList();
         }
-
-        return snippets;
-    }
-
-    public List<SnippetValidLintingDTO> filterValidSnippets(List<Snippet> snippets, SnippetFilterDTO filterDTO,
-            Jwt jwt) {
-        List<SnippetValidLintingDTO> validatedSnippets = new ArrayList<>();
+        boolean mustValidate = filterDTO != null && (filterDTO.compliance() != null);
+        List<SnippetWithLintData> withLint = new ArrayList<>();
         for (Snippet snippet : snippets) {
-            logger.info("Validating snippet {}", snippet.getName());
-            ValidationResult linting = ruleService.validateSnippet(new SimpleRunSnippet(snippet.getId(),
-                    SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()), jwt);
-            logger.info("linting status {}", linting);
-            SnippetStatus status = linting.valid() ? SnippetStatus.PASSED : SnippetStatus.FAILED;
-            if (filterDTO.valid() != null) {
-                if (filterDTO.valid() == status) {
-                    validatedSnippets.add(new SnippetValidLintingDTO(snippet, status));
-                }
-            } else {
-                validatedSnippets.add(new SnippetValidLintingDTO(snippet, status));
+            SnippetStatus status = snippet.getLintStatus();
+            if (mustValidate || status == null) {
+                ValidationResult vr = ruleService.validateSnippet(
+                        new SimpleRunSnippet(snippet.getId(),
+                                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()),
+                        jwt);
+                status = vr.valid() ? SnippetStatus.PASSED : SnippetStatus.FAILED;
             }
+
+            if (filterDTO != null && filterDTO.compliance() != null
+                    && !SnippetStatus.valueOf(filterDTO.compliance()).equals(status)) {
+                continue;
+            }
+
+            withLint.add(new SnippetWithLintData(snippet, status, findUserBySnippetId(snippet.getId(), jwt)));
         }
-        return validatedSnippets;
+        if (filterDTO != null) {
+            Comparator<SnippetWithLintData> cmp = Comparator.comparing(s -> s.valid().name());
+
+            if (filterDTO.order() == Order.DESC) {
+                cmp = cmp.reversed();
+            }
+            withLint = withLint.stream().sorted(cmp).toList();
+        }
+        int total = withLint.size();
+        int from = Math.max(0, page * pageSize);
+        int to = Math.min(from + pageSize, total);
+        List<SnippetWithLintData> slice = from < total ? withLint.subList(from, to) : List.of();
+        return new PaginatedSnippets(page, pageSize, total, slice);
     }
 
     public String downloadSnippetContent(UUID snippetId) {
@@ -328,6 +340,9 @@ public class SnippetService {
         if (!validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to share snippet");
         }
+        if (!authenticationService.userExists(shareDTO.userId(), jwt)) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("User not exist");
+        }
         return userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
     }
 
@@ -337,7 +352,9 @@ public class SnippetService {
     }
 
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {
+        logger.info("get user {} for snippet {}", getOwnerId(jwt), snippetId);
         String userId = userPermissionService.getUserIdBySnippetId(snippetId, jwt.getTokenValue());
+        logger.info("get user {} for snippet {}", getOwnerId(jwt), snippetId);
         return authenticationService.getUserNameById(userId, jwt);
     }
 

@@ -51,27 +51,27 @@ services:
     networks:
       - snippet-net
 
-  snippet-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
-    container_name: snippet-service
-    ports:
-      - "${API_PORT}:8081"
-    env_file:
-      - .env
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_started
-      asset-service:
-        condition: service_started
-    networks:
-      - snippet-net
+#  snippet-service:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      args:
+#        GITHUB_USER: ${GITHUB_USER}
+#        GITHUB_TOKEN: ${GITHUB_TOKEN}
+#    container_name: snippet-service
+#    ports:
+#      - "${API_PORT}:8081"
+#    env_file:
+#      - .env
+#    depends_on:
+#      redis:
+#        condition: service_healthy
+#      db:
+#        condition: service_started
+#      asset-service:
+#        condition: service_started
+#    networks:
+#      - snippet-net
 
 volumes:
   db:
