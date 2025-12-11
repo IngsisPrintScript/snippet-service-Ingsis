@@ -61,13 +61,13 @@ public class SnippetController {
         }
     }
 
-    private ResponseEntity<String> updateSnippetCommon(UUID id, Snippet snippet, String content, Jwt jwt) {
+    private ResponseEntity<SnippetResponseDTO> updateSnippetCommon(UUID id, Snippet snippet, String content, Jwt jwt) {
         try {
             return ResponseEntity.ok(snippetService.updateSnippet(id, jwt, snippet, content));
         } catch (NoSuchElementException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception a) {
-            return ResponseEntity.badRequest().body(a.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -88,7 +88,7 @@ public class SnippetController {
     }
 
     @PutMapping("/{id}/update/file")
-    public ResponseEntity<String> updateSnippetFromFile(@PathVariable UUID id, @ModelAttribute RequestFileDTO fileDTO,
+    public ResponseEntity<SnippetResponseDTO> updateSnippetFromFile(@PathVariable UUID id, @ModelAttribute RequestFileDTO fileDTO,
             @AuthenticationPrincipal Jwt jwt) throws IOException {
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);
@@ -96,7 +96,7 @@ public class SnippetController {
     }
 
     @PutMapping("/{id}/update/text")
-    public ResponseEntity<String> updateSnippetFromText(@PathVariable UUID id,
+    public ResponseEntity<SnippetResponseDTO> updateSnippetFromText(@PathVariable UUID id,
             @RequestBody RequestSnippetDTO snippetDTO, @AuthenticationPrincipal Jwt jwt) {
         Snippet snippet = getSnippetFromText(snippetDTO);
         String content = snippetDTO.content();

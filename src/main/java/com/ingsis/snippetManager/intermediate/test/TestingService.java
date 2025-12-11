@@ -195,9 +195,7 @@ public class TestingService {
     public void runAllTestsForSnippet(UUID snippetId, Jwt jwt) {
         List<TestSnippets> testCases = testRepo.findAllBySnippetId(snippetId);
         Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        if (testCases.isEmpty()) {
-            throw new RuntimeException("No tests found for snippet " + snippetId);
-        }
+        if(testCases.isEmpty()){return;}
         for (TestSnippets test : testCases) {
 
             List<String> inputs = test.getInputs().stream().map(TestCasesInput::getInputUrl).toList();

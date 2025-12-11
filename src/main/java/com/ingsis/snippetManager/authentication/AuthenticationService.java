@@ -16,7 +16,6 @@ public class AuthenticationService {
 
     private final RestTemplate restTemplate;
     private final String authServiceUrl;
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
     public AuthenticationService(@Value("${AUTHENTICATION_URL}") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
@@ -30,7 +29,6 @@ public class AuthenticationService {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(jwt.getTokenValue());
             HttpEntity<Void> request = new HttpEntity<>(headers);
-            logger.info("url {}", url);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
@@ -38,7 +36,6 @@ public class AuthenticationService {
             }
             return "Unknown";
         } catch (Exception e) {
-            logger.warn("Error fetching username for user {}: {}", userId, e.getMessage());
             return "Unknown";
         }
     }
@@ -50,7 +47,6 @@ public class AuthenticationService {
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(jwt.getTokenValue());
             HttpEntity<Void> request = new HttpEntity<>(headers);
-            logger.info("url {}", url);
             ResponseEntity<Boolean> response = restTemplate.exchange(url, HttpMethod.GET, request, Boolean.class);
             return Boolean.TRUE.equals(response.getBody());
         } catch (Exception e) {

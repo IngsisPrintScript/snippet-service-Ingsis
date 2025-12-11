@@ -92,12 +92,7 @@ public class SnippetService {
         return userPermissionService.getUserSnippets(subject, authorizationActions, token);
     }
 
-    public SnippetResponseDTO createSnippet(
-            Snippet snippet,
-            Jwt jwt,
-            AuthorizationActions actions,
-            String content
-    ) {
+    public SnippetResponseDTO createSnippet(Snippet snippet, Jwt jwt, AuthorizationActions actions, String content) {
         try {
             ResponseEntity<String> user = createUser(snippet, jwt, actions);
             if (!user.getStatusCode().is2xxSuccessful()) {
@@ -142,42 +137,49 @@ public class SnippetService {
         }
     }
 
-    public String updateSnippet(UUID id, Jwt jwt, Snippet updatedSnippet, String content) {
-        if (!validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL, getToken(jwt))) {
-            throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
+    public SnippetResponseDTO updateSnippet(UUID id, Jwt jwt, Snippet updatedSnippet, String content) {
+        String userId = getOwnerId(jwt);
+        if (!validateSnippet(userId, id, AuthorizationActions.ALL, getToken(jwt))) {
+            return new SnippetResponseDTO(null, userId, null, "forbidden");
         }
-        logger.info("Updating snippet with id: " + id);
-        Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        ValidationResult result = ruleService.validateSnippet(new SimpleRunSnippet(snippet.getId(),
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()), jwt);
-        if (result.valid()) {
-            snippet.setName(updatedSnippet.getName());
-            snippet.setDescription(updatedSnippet.getDescription());
-            snippet.setLanguage(updatedSnippet.getLanguage());
-            snippet.setVersion(updatedSnippet.getVersion());
-            logger.info("Snippet created {}", snippet.getId());
-            try {
-                assetService.saveSnippet(snippet.getId(), content == null ? "" : content);
-                logger.info("Snippet updated {}", snippet.getId());
-                repository.save(snippet);
-                logger.info("Snippet updated");
-            } catch (Exception e) {
-                assetService.saveSnippet(snippet.getId(), assetService.getSnippet(snippet.getId()).getBody());
-                logger.info("Snippet deleted");
-                return e.getMessage();
-            }
-            testingService.runAllTestsForSnippet(snippet.getId(), jwt);
+        Snippet snippet = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        ValidationResult result = ruleService.validateSnippet(
+                new SimpleRunSnippet(
+                        snippet.getId(),
+                        SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
+                        snippet.getVersion()
+                ),
+                jwt
+        );
+        if (!result.valid()) {
+            return new SnippetResponseDTO(snippet, userId, null, result.message());
         }
-        return result.message();
+        snippet.setName(updatedSnippet.getName());
+        snippet.setDescription(updatedSnippet.getDescription());
+        snippet.setLanguage(updatedSnippet.getLanguage());
+        snippet.setVersion(updatedSnippet.getVersion());
+        try {
+            assetService.saveSnippet(snippet.getId(), content == null ? "" : content);
+            repository.save(snippet);
+        } catch (Exception e) {
+            String previousContent = assetService.getSnippet(snippet.getId()).getBody();
+            assetService.saveSnippet(snippet.getId(), previousContent);
+            return new SnippetResponseDTO(snippet, userId, previousContent, e.getMessage());
+        }
+        testingService.runAllTestsForSnippet(snippet.getId(), jwt);
+        return new SnippetResponseDTO(
+                snippet,
+                userId,
+                content,
+                "ok"
+        );
     }
 
     public PaginatedSnippets getFilteredSnippets(SnippetFilterDTO filterDTO, int page, int pageSize, Jwt jwt) {
-        logger.info("Start filtering snippets");
         List<UUID> uuids = getAllUuids(getOwnerId(jwt), filterDTO != null ? filterDTO.property() : Property.BOTH,
                 getToken(jwt));
-        logger.info("UUDIS: {}", uuids.size());
         List<Snippet> snippets = repository.findAllById(uuids);
-        logger.info("Found {} snippets", snippets.size());
         if (filterDTO != null) {
             if (filterDTO.name() != null && !filterDTO.name().isEmpty()) {
                 String nameFilter = filterDTO.name().toLowerCase();
