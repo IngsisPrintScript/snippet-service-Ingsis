@@ -13,7 +13,6 @@ import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
-import com.ingsis.snippetManager.intermediate.rules.model.dto.FormatDTO;
 import com.ingsis.snippetManager.intermediate.rules.repositories.RuleRepository;
 import com.ingsis.snippetManager.intermediate.rules.repositories.UserRuleRepository;
 import com.ingsis.snippetManager.redis.dto.request.FormatRequestEvent;
@@ -72,7 +71,8 @@ public class RuleService {
         boolean hasRules = !userRuleRepository.findRuleIdsByUserIdAndType(ownerId, RuleType.LINT).isEmpty()
                 || !userRuleRepository.findRuleIdsByUserIdAndType(ownerId, RuleType.FORMATTING).isEmpty();
 
-        if (hasRules) return;
+        if (hasRules)
+            return;
 
         List<Rule> defaultRules = List.of(
                 new Rule("mandatoryVariableOrLiteralInPrintln", "false", ownerId, RuleType.LINT),
@@ -82,8 +82,7 @@ public class RuleService {
                 new Rule("hasPreAscriptionSpace", "false", ownerId, RuleType.FORMATTING),
                 new Rule("indentationInsideConditionals", "0", ownerId, RuleType.FORMATTING),
                 new Rule("isAssignationSpaced", "false", ownerId, RuleType.FORMATTING),
-                new Rule("printlnSeparationLines", "0", ownerId, RuleType.FORMATTING)
-        );
+                new Rule("printlnSeparationLines", "0", ownerId, RuleType.FORMATTING));
 
         ruleRepository.saveAll(defaultRules);
 
@@ -139,7 +138,8 @@ public class RuleService {
             List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(jwt), RuleType.LINT);
             LintSupportedRules lintRules = converter.convertToLintRules(rules);
             LintRequestEvent event = new LintRequestEvent(getOwnerId(jwt), snippet,
-                    SupportedLanguage.valueOf(snippetToLint.getLanguage().toUpperCase()), lintRules, snippetToLint.getVersion());
+                    SupportedLanguage.valueOf(snippetToLint.getLanguage().toUpperCase()), lintRules,
+                    snippetToLint.getVersion());
             lintRequestProducer.publish(event);
         }
     }
@@ -155,8 +155,8 @@ public class RuleService {
             List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(jwt), RuleType.LINT);
             FormatterSupportedRules formatRules = converter.convertToFormatterRules(rules);
             FormatRequestEvent event = new FormatRequestEvent(getOwnerId(jwt), snippet,
-                    SupportedLanguage.valueOf(snippetToFormat.getLanguage().toUpperCase()), snippetToFormat.getVersion(),
-                    formatRules);
+                    SupportedLanguage.valueOf(snippetToFormat.getLanguage().toUpperCase()),
+                    snippetToFormat.getVersion(), formatRules);
             formatRequestProducer.publish(event);
         }
     }
@@ -182,8 +182,7 @@ public class RuleService {
         List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(token), RuleType.FORMATTING);
         FormatterSupportedRules formatterRules = converter.convertToFormatterRules(rules);
         FormatRequestDTO dto = new FormatRequestDTO(snippet.getId(), snippet.getVersion(),
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
-                formatterRules);
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), formatterRules);
         return engineService.format(dto, getToken(token)).getStatusCode().is2xxSuccessful()
                 ? SnippetStatus.PASSED
                 : SnippetStatus.FAILED;

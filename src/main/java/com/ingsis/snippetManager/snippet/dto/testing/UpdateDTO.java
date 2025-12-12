@@ -6,5 +6,5 @@ import java.util.Map;
 import java.util.UUID;
 
 public record UpdateDTO(@NotBlank UUID testId, @NotBlank UUID snippetId, String name, List<String> inputs,
-                        List<String> outputs, Map<String,String> envs) {
+        List<String> outputs, Map<String, String> envs) {
 }

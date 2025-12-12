@@ -6,5 +6,5 @@ import java.util.Map;
 import java.util.UUID;
 
 public record TestRequestEvent(String ownerId, UUID testId, UUID snippetId, SupportedLanguage language, String version,
-                               List<String> inputs, List<String> expectedOutputs, Map<String,String> envs) {
+        List<String> inputs, List<String> expectedOutputs, Map<String, String> envs) {
 }

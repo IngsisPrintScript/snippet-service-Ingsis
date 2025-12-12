@@ -135,16 +135,13 @@ public class Snippet {
 
     public void addOrUpdateTestStatus(UUID testId, SnippetStatus status) {
 
-        TestStatus ts = testStatusList.stream()
-                .filter(t -> t.getTestId().equals(testId))
-                .findFirst()
-                .orElseGet(() -> {
-                    TestStatus newTs = new TestStatus();
-                    newTs.setTestId(testId);
-                    newTs.setSnippet(this);
-                    testStatusList.add(newTs);
-                    return newTs;
-                });
+        TestStatus ts = testStatusList.stream().filter(t -> t.getTestId().equals(testId)).findFirst().orElseGet(() -> {
+            TestStatus newTs = new TestStatus();
+            newTs.setTestId(testId);
+            newTs.setSnippet(this);
+            testStatusList.add(newTs);
+            return newTs;
+        });
 
         ts.setTestStatus(status);
     }

@@ -5,5 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public record RunSnippetRequestDTO(UUID snippetId, SupportedLanguage language, List<String> inputs, String version, Map<String,String> envs) {
+public record RunSnippetRequestDTO(UUID snippetId, SupportedLanguage language, List<String> inputs, String version,
+        Map<String, String> envs) {
 }

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.connection.stream.StreamRecords;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,11 +19,8 @@ public class TestRequestProducer {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public TestRequestProducer(
-            @Value("${redis.streams.testRequest}") String streamName,
-            StringRedisTemplate redis,
-            ObjectMapper objectMapper
-    ) {
+    public TestRequestProducer(@Value("${redis.streams.testRequest}") String streamName, StringRedisTemplate redis,
+            ObjectMapper objectMapper) {
         this.streamName = streamName;
         this.redisTemplate = redis;
         this.objectMapper = objectMapper;

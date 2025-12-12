@@ -13,8 +13,6 @@ import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetResponseDTO;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -90,8 +88,8 @@ public class SnippetController {
     }
 
     @PutMapping("/{id}/update/file")
-    public ResponseEntity<SnippetResponseDTO> updateSnippetFromFile(@PathVariable UUID id, @ModelAttribute RequestFileDTO fileDTO,
-            @AuthenticationPrincipal Jwt jwt) throws IOException {
+    public ResponseEntity<SnippetResponseDTO> updateSnippetFromFile(@PathVariable UUID id,
+            @ModelAttribute RequestFileDTO fileDTO, @AuthenticationPrincipal Jwt jwt) throws IOException {
         Snippet snippet = getSnippetFromFile(fileDTO);
         String content = new String(fileDTO.file().getBytes(), StandardCharsets.UTF_8);
         return updateSnippetCommon(id, snippet, content, jwt);
@@ -154,8 +152,7 @@ public class SnippetController {
 
     @PostMapping("/{snippetId}/execute")
     public ResponseEntity<RunSnippetResponseDTO> executeSnippet(@AuthenticationPrincipal Jwt jwt,
-                                                                @PathVariable UUID snippetId,
-                                                                @RequestBody ExecuteSnippetRequestDTO exec) {
-        return ResponseEntity.ok(snippetService.execute(snippetId, jwt, exec.inputs(),exec.envs()));
+            @PathVariable UUID snippetId, @RequestBody ExecuteSnippetRequestDTO exec) {
+        return ResponseEntity.ok(snippetService.execute(snippetId, jwt, exec.inputs(), exec.envs()));
     }
 }

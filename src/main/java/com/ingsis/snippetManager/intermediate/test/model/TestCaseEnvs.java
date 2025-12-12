@@ -4,7 +4,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-
 import java.util.UUID;
 
 @Entity
@@ -21,7 +20,7 @@ public class TestCaseEnvs {
     @JoinColumn(name = "test_snippet_id")
     private TestSnippets testSnippet;
 
-    public TestCaseEnvs(UUID id, String key, String value, TestSnippets testCaseEnvs){
+    public TestCaseEnvs(UUID id, String key, String value, TestSnippets testCaseEnvs) {
         this.id = id;
         this.key = key;
         this.value = value;

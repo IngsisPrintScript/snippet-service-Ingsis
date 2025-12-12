@@ -25,13 +25,10 @@ import com.ingsis.snippetManager.snippet.dto.testing.TestToRunDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.UpdateDTO;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +53,7 @@ public class TestingService {
     public TestingService(SnippetRepo snippetRepo, AssetService assetService, TestRepo testRepo,
             UserPermissionService userPermissionService, TestRequestProducer testRequestProducer,
             EngineService engineService, TestCaseExpectedOutputRepository outputRepository,
-                          TestCasesInputRepository inputRepository, TestCaseEnvsRepository envsRepository) {
+            TestCasesInputRepository inputRepository, TestCaseEnvsRepository envsRepository) {
         this.snippetRepo = snippetRepo;
         this.assetService = assetService;
         this.testRepo = testRepo;
@@ -83,11 +80,7 @@ public class TestingService {
 
     @Transactional
     protected TestSnippets createTestSnippets(TestDTO testDTO) {
-        TestSnippets testSnippets = new TestSnippets(
-                UUID.randomUUID(),
-                testDTO.name(),
-                testDTO.snippetId()
-        );
+        TestSnippets testSnippets = new TestSnippets(UUID.randomUUID(), testDTO.name(), testDTO.snippetId());
         for (String input : testDTO.inputs()) {
             TestCasesInput inp = new TestCasesInput(UUID.randomUUID(), input, testSnippets);
             testSnippets.getInputs().add(inp);
@@ -96,8 +89,8 @@ public class TestingService {
             TestCaseExpectedOutput out = new TestCaseExpectedOutput(UUID.randomUUID(), output, testSnippets);
             testSnippets.getExpectedOutputs().add(out);
         }
-        for (Map.Entry<String,String> entry: testDTO.envs().entrySet()){
-            TestCaseEnvs envs = new TestCaseEnvs(UUID.randomUUID(),entry.getKey(),entry.getValue(),testSnippets);
+        for (Map.Entry<String, String> entry : testDTO.envs().entrySet()) {
+            TestCaseEnvs envs = new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), testSnippets);
             testSnippets.getEnvs().add(envs);
         }
         return testRepo.save(testSnippets);
@@ -117,8 +110,8 @@ public class TestingService {
         for (String output : dto.outputs()) {
             existing.getExpectedOutputs().add(new TestCaseExpectedOutput(UUID.randomUUID(), output, existing));
         }
-        for (Map.Entry<String,String> entry : dto.envs().entrySet()) {
-            existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(),entry.getValue(), existing));
+        for (Map.Entry<String, String> entry : dto.envs().entrySet()) {
+            existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
         return testRepo.save(existing);
     }
@@ -146,13 +139,9 @@ public class TestingService {
     public GetTestDTO convertToGetDTO(TestSnippets updated) {
         List<String> inputs = updated.getInputs().stream().map(TestCasesInput::getInputUrl).toList();
         List<String> outputs = updated.getExpectedOutputs().stream().map(TestCaseExpectedOutput::getOutput).toList();
-        Map<String, String> envs = updated.getEnvs()
-                .stream()
-                .collect(Collectors.toMap(
-                        TestCaseEnvs::getKey,
-                        TestCaseEnvs::getValue
-                ));
-        return new GetTestDTO(updated.getId(), updated.getSnippetId(), updated.getName(), inputs, outputs,envs);
+        Map<String, String> envs = updated.getEnvs().stream()
+                .collect(Collectors.toMap(TestCaseEnvs::getKey, TestCaseEnvs::getValue));
+        return new GetTestDTO(updated.getId(), updated.getSnippetId(), updated.getName(), inputs, outputs, envs);
     }
 
     @Transactional
@@ -171,14 +160,10 @@ public class TestingService {
         List<String> inputs = testCase.getInputs().stream().map(TestCasesInput::getInputUrl).toList();
         List<String> expectedOutputs = testCase.getExpectedOutputs().stream().map(TestCaseExpectedOutput::getOutput)
                 .toList();
-        Map<String, String> envs = testCase.getEnvs()
-                .stream()
-                .collect(Collectors.toMap(
-                        TestCaseEnvs::getKey,
-                        TestCaseEnvs::getValue
-                ));
+        Map<String, String> envs = testCase.getEnvs().stream()
+                .collect(Collectors.toMap(TestCaseEnvs::getKey, TestCaseEnvs::getValue));
         TestRequestDTO request = new TestRequestDTO(testCase.getSnippetId(), inputs, expectedOutputs,
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(),envs);
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), envs);
 
         ResponseEntity<TestResponseDTO> engineResponse = engineService.test(request, getToken(jwt));
 
@@ -228,20 +213,19 @@ public class TestingService {
     public void runAllTestsForSnippet(UUID snippetId, Jwt jwt) {
         List<TestSnippets> testCases = testRepo.findAllBySnippetId(snippetId);
         Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        if(testCases.isEmpty()){return;}
+        if (testCases.isEmpty()) {
+            return;
+        }
         for (TestSnippets test : testCases) {
 
             List<String> inputs = test.getInputs().stream().map(TestCasesInput::getInputUrl).toList();
 
             List<String> expected = test.getExpectedOutputs().stream().map(TestCaseExpectedOutput::getOutput).toList();
-            Map<String, String> envs = test.getEnvs()
-                    .stream()
-                    .collect(Collectors.toMap(
-                            TestCaseEnvs::getKey,
-                            TestCaseEnvs::getValue
-                    ));
+            Map<String, String> envs = test.getEnvs().stream()
+                    .collect(Collectors.toMap(TestCaseEnvs::getKey, TestCaseEnvs::getValue));
             TestRequestEvent event = new TestRequestEvent(getOwnerId(jwt), test.getId(), snippetId,
-                    SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), inputs, expected, envs);
+                    SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), inputs,
+                    expected, envs);
 
             logger.info("Publishing test execution request for testId {} and snippetId {}", test.getId(), snippetId);
 

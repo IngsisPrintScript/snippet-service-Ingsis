@@ -6,7 +6,6 @@ import com.ingsis.snippetManager.intermediate.engine.dto.response.ValidationResu
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
-import com.ingsis.snippetManager.intermediate.rules.model.dto.FormatDTO;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +32,6 @@ public class RuleController {
         this.ruleService = ruleService;
     }
 
-
     @PostMapping("/initialize")
     public ResponseEntity<String> initialize(@AuthenticationPrincipal Jwt jwt) {
         ruleService.initializeDefaultRules(jwt);
@@ -47,7 +45,8 @@ public class RuleController {
     }
 
     @PutMapping("/{ruleId}")
-    public ResponseEntity<Rule> updateRule(@PathVariable UUID ruleId, @RequestParam String newValue, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Rule> updateRule(@PathVariable UUID ruleId, @RequestParam String newValue,
+            @AuthenticationPrincipal Jwt jwt) {
         Rule updated = ruleService.updateGlobalRule(ruleId, newValue);
         return ResponseEntity.ok(updated);
     }
@@ -83,8 +82,7 @@ public class RuleController {
     }
 
     @PostMapping("/format")
-    public ResponseEntity<SnippetStatus> formatSnippet(@RequestBody UUID snippetId,
-            @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<SnippetStatus> formatSnippet(@RequestBody UUID snippetId, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(ruleService.formatSnippet(snippetId, jwt));
     }
 

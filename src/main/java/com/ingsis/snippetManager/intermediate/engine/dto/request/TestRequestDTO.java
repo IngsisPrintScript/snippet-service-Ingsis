@@ -6,5 +6,5 @@ import java.util.Map;
 import java.util.UUID;
 
 public record TestRequestDTO(UUID snippetId, List<String> inputs, List<String> outputs, SupportedLanguage language,
-                             String version, Map<String,String> envs) {
+        String version, Map<String, String> envs) {
 }

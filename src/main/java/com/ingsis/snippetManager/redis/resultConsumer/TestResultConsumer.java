@@ -1,13 +1,11 @@
 package com.ingsis.snippetManager.redis.resultConsumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ingsis.snippetManager.redis.config.TestResultHandlerService;
 import com.ingsis.snippetManager.redis.dto.result.TestResultEvent;
-import com.ingsis.snippetManager.snippet.SnippetRepo;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import com.ingsis.snippetManager.redis.config.TestResultHandlerService;
 import org.austral.ingsis.redis.RedisStreamConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -29,10 +27,8 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public TestResultConsumer(@Value("${redis.streams.testResult}") String streamName,
-            @Value("${redis.groups.test}") String groupName,
-                              StringRedisTemplate redisTemplate,
-                              ObjectMapper objectMapper,
-                              TestResultHandlerService handler) {
+            @Value("${redis.groups.test}") String groupName, StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper, TestResultHandlerService handler) {
         super(streamName, groupName, redisTemplate);
         this.objectMapper = objectMapper;
         this.handler = handler;
@@ -42,8 +38,7 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
     public void onMessage(@NotNull ObjectRecord<String, String> record) {
         executor.submit(() -> {
             try {
-                TestResultEvent event =
-                        objectMapper.readValue(record.getValue(), TestResultEvent.class);
+                TestResultEvent event = objectMapper.readValue(record.getValue(), TestResultEvent.class);
 
                 handler.handle(event);
 
