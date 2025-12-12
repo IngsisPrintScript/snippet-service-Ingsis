@@ -39,7 +39,7 @@ public class Snippet {
     private List<TestStatus> testStatusList = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    private SnippetStatus lintStatus = SnippetStatus.TO_DO;
+    private SnippetStatus lintStatus = SnippetStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     private SnippetStatus formatStatus = SnippetStatus.TO_DO;
@@ -131,5 +131,21 @@ public class Snippet {
 
     public void setTestId(List<UUID> testId) {
         this.testId = testId;
+    }
+
+    public void addOrUpdateTestStatus(UUID testId, SnippetStatus status) {
+
+        TestStatus ts = testStatusList.stream()
+                .filter(t -> t.getTestId().equals(testId))
+                .findFirst()
+                .orElseGet(() -> {
+                    TestStatus newTs = new TestStatus();
+                    newTs.setTestId(testId);
+                    newTs.setSnippet(this);
+                    testStatusList.add(newTs);
+                    return newTs;
+                });
+
+        ts.setTestStatus(status);
     }
 }

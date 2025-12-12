@@ -4,6 +4,7 @@ import com.ingsis.snippetManager.intermediate.engine.dto.response.RunSnippetResp
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.snippet.dto.Converter;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
+import com.ingsis.snippetManager.snippet.dto.ExecuteSnippetRequestDTO;
 import com.ingsis.snippetManager.snippet.dto.PaginatedSnippets;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
@@ -13,6 +14,7 @@ import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetResponseDTO;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -152,7 +154,8 @@ public class SnippetController {
 
     @PostMapping("/{snippetId}/execute")
     public ResponseEntity<RunSnippetResponseDTO> executeSnippet(@AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID snippetId, @RequestBody List<String> inputs) {
-        return ResponseEntity.ok(snippetService.execute(snippetId, jwt, inputs));
+                                                                @PathVariable UUID snippetId,
+                                                                @RequestBody ExecuteSnippetRequestDTO exec) {
+        return ResponseEntity.ok(snippetService.execute(snippetId, jwt, exec.inputs(),exec.envs()));
     }
 }

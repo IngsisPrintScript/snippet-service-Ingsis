@@ -39,7 +39,9 @@ public class SnippetTestingController {
             TestSnippets created = testSnippetService.createTestSnippets(testDTO, jwt);
             GetTestDTO response = testSnippetService.convertToGetDTO(created);
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        } catch (RuntimeException a){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }

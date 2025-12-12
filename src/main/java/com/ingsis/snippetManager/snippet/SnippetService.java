@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
@@ -115,24 +116,24 @@ public class SnippetService {
                         snippet,
                         jwt.getSubject(),
                         content,
-                        "false"
+                        "FAILED"
                 );
             }
             repository.save(snippet);
             return new SnippetResponseDTO(
                     snippet,
-                    jwt.getSubject(),
+                    getOwnerId(jwt),
                     content,
-                    "true"
+                    "PENDING"
             );
         } catch (Exception e) {
             deleteSnippetUserAuthorization(jwt, snippet.getId());
             assetService.deleteSnippet(snippet.getId());
             return new SnippetResponseDTO(
                     snippet,
-                    jwt.getSubject(),
+                    getOwnerId(jwt),
                     content,
-                    "false"
+                    "FAILED"
             );
         }
     }
@@ -144,16 +145,18 @@ public class SnippetService {
         }
         Snippet snippet = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        UUID random = UUID.randomUUID();
+        assetService.saveSnippet(random, content == null ? "" : content);
         ValidationResult result = ruleService.validateSnippet(
                 new SimpleRunSnippet(
-                        snippet.getId(),
+                        random,
                         SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
                         snippet.getVersion()
                 ),
                 jwt
         );
         if (!result.valid()) {
-            return new SnippetResponseDTO(snippet, userId, null, result.message());
+            return new SnippetResponseDTO(snippet, userId,assetService.getSnippet(snippet.getId()).getBody(), "FAILED");
         }
         snippet.setName(updatedSnippet.getName());
         snippet.setDescription(updatedSnippet.getDescription());
@@ -163,16 +166,15 @@ public class SnippetService {
             assetService.saveSnippet(snippet.getId(), content == null ? "" : content);
             repository.save(snippet);
         } catch (Exception e) {
-            String previousContent = assetService.getSnippet(snippet.getId()).getBody();
-            assetService.saveSnippet(snippet.getId(), previousContent);
-            return new SnippetResponseDTO(snippet, userId, previousContent, e.getMessage());
+            assetService.deleteSnippet(random);
+            return new SnippetResponseDTO(snippet, userId, assetService.getSnippet(snippet.getId()).getBody(), "FAILED");
         }
         testingService.runAllTestsForSnippet(snippet.getId(), jwt);
         return new SnippetResponseDTO(
                 snippet,
                 userId,
                 content,
-                "ok"
+                "PENDING"
         );
     }
 
@@ -276,7 +278,7 @@ public class SnippetService {
         return content.getBytes(StandardCharsets.UTF_8);
     }
 
-    public ResponseEntity<String> deleteSnippet(UUID snippetId, Jwt jwt) {
+    public ResponseEntity<String> deleteSnippet(UUID snippetId, Jwt jwt)  {
         if (!validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
@@ -292,7 +294,7 @@ public class SnippetService {
             List<GetTestDTO> list = test == null ? List.of() : test;
             for (GetTestDTO getTestDTO : list) {
                 testingService.createTestSnippets(
-                        new TestDTO(snippetId, getTestDTO.name(), getTestDTO.inputs(), getTestDTO.outputs()));
+                        new TestDTO(snippetId, getTestDTO.name(), getTestDTO.inputs(), getTestDTO.outputs(),getTestDTO.envs()),jwt);
             }
             repository.save(snippet);
             assetService.saveSnippet(snippetId, assetService.getSnippet(snippetId).getBody());
@@ -317,9 +319,7 @@ public class SnippetService {
     }
 
     public DataDTO getSnippetById(UUID id, Jwt jwt) {
-        if (!validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL, getToken(jwt))) {
-            throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
-        } else if (!validateSnippet(getOwnerId(jwt), id, AuthorizationActions.READ, getToken(jwt))) {
+        if (!validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL, getToken(jwt)) && !validateSnippet(getOwnerId(jwt), id, AuthorizationActions.READ, getToken(jwt))) {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
         Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
@@ -327,7 +327,6 @@ public class SnippetService {
     }
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
-        logger.info("content {}", content);
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
     }
 
@@ -348,22 +347,15 @@ public class SnippetService {
         return userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
     }
 
-    // TO DO
-    public void runAllTestsForSnippet(String subject, UUID snippetId) {
-        ;
-    }
-
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {
-        logger.info("get user {} for snippet {}", getOwnerId(jwt), snippetId);
         String userId = userPermissionService.getUserIdBySnippetId(snippetId, jwt.getTokenValue());
-        logger.info("get user {} for snippet {}", getOwnerId(jwt), snippetId);
         return authenticationService.getUserNameById(userId, jwt);
     }
 
-    public RunSnippetResponseDTO execute(UUID snippetId, Jwt jwt, List<String> inputs) {
+    public RunSnippetResponseDTO execute(UUID snippetId, Jwt jwt, List<String> inputs, Map<String,String> envs) {
         Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
         return engineService.execute(new RunSnippetRequestDTO(snippetId,
-                SupportedLanguage.valueOf(snippet.getLanguage()), inputs, snippet.getVersion()), getToken(jwt))
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), inputs, snippet.getVersion(),envs), getToken(jwt))
                 .getBody();
     }
 }
