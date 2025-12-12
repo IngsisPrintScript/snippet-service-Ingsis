@@ -52,7 +52,10 @@ public class SnippetTestingController {
             TestSnippets updated = testSnippetService.updateTest(dto, jwt);
             GetTestDTO response = testSnippetService.convertToGetDTO(updated);
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        }catch (SecurityException a){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }

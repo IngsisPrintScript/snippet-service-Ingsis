@@ -67,6 +67,10 @@ public class TestSnippets {
         this.expectedOutputs = expectedOutputs;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public List<TestCaseEnvs> getEnvs() {
         return envs;
     }

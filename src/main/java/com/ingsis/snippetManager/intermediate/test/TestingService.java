@@ -113,6 +113,7 @@ public class TestingService {
         for (Map.Entry<String, String> entry : dto.envs().entrySet()) {
             existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
+        existing.setName(dto.name());
         return testRepo.save(existing);
     }
 
@@ -120,14 +121,16 @@ public class TestingService {
     public void deleteTest(UUID testId) {
         TestSnippets testToDelete = testRepo.findById(testId)
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
-
         testRepo.delete(testToDelete);
     }
 
     @Transactional
     public String deleteTestsBySnippet(UUID snippetId) {
-        List<TestSnippets> testsToDelete = testRepo.findAllBySnippetId(snippetId);
-        testRepo.deleteAll(testsToDelete);
+        Snippet snippet = snippetRepo.findByIdWithTestStatus(snippetId)
+                .orElseThrow(() -> new EntityNotFoundException("Snippet not found"));
+
+        snippet.getTestStatusList().clear();
+        testRepo.deleteById(snippetId);
         return "Successful";
     }
 
@@ -189,7 +192,7 @@ public class TestingService {
     @Transactional
     public TestSnippets updateTest(UpdateDTO dto, Jwt jwt) {
         if (!validateSnippet(getOwnerId(jwt), dto.snippetId(), AuthorizationActions.ALL, getToken(jwt))) {
-            throw new RuntimeException("Snippet validation failed");
+            throw new SecurityException("Snippet validation failed");
         }
         return updateTest(dto);
     }
@@ -217,18 +220,14 @@ public class TestingService {
             return;
         }
         for (TestSnippets test : testCases) {
-
             List<String> inputs = test.getInputs().stream().map(TestCasesInput::getInputUrl).toList();
-
             List<String> expected = test.getExpectedOutputs().stream().map(TestCaseExpectedOutput::getOutput).toList();
             Map<String, String> envs = test.getEnvs().stream()
                     .collect(Collectors.toMap(TestCaseEnvs::getKey, TestCaseEnvs::getValue));
             TestRequestEvent event = new TestRequestEvent(getOwnerId(jwt), test.getId(), snippetId,
                     SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), inputs,
                     expected, envs);
-
             logger.info("Publishing test execution request for testId {} and snippetId {}", test.getId(), snippetId);
-
             testRequestProducer.publish(event);
         }
     }
