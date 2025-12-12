@@ -25,6 +25,8 @@ import com.ingsis.snippetManager.snippet.dto.testing.TestToRunDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.UpdateDTO;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -80,40 +82,59 @@ public class TestingService {
 
     @Transactional
     protected TestSnippets createTestSnippets(TestDTO testDTO) {
-        TestSnippets testSnippets = new TestSnippets(UUID.randomUUID(), testDTO.name(), testDTO.snippetId());
+        TestSnippets testSnippets =
+                new TestSnippets(UUID.randomUUID(), testDTO.name(), testDTO.snippetId());
+
         for (String input : testDTO.inputs()) {
-            TestCasesInput inp = new TestCasesInput(UUID.randomUUID(), input, testSnippets);
-            testSnippets.getInputs().add(inp);
+            testSnippets.getInputs()
+                    .add(new TestCasesInput(UUID.randomUUID(), input, testSnippets));
         }
+
         for (String output : testDTO.expectedOutputs()) {
-            TestCaseExpectedOutput out = new TestCaseExpectedOutput(UUID.randomUUID(), output, testSnippets);
-            testSnippets.getExpectedOutputs().add(out);
+            testSnippets.getExpectedOutputs()
+                    .add(new TestCaseExpectedOutput(UUID.randomUUID(), output, testSnippets));
         }
-        for (Map.Entry<String, String> entry : testDTO.envs().entrySet()) {
-            TestCaseEnvs envs = new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), testSnippets);
-            testSnippets.getEnvs().add(envs);
+        Map<String, String> uniqueEnvs = new LinkedHashMap<>();
+        testDTO.envs().forEach((k, v) -> {
+            if (!uniqueEnvs.containsKey(k)) {
+                uniqueEnvs.put(k, v);
+            }
+        });
+
+        for (Map.Entry<String, String> entry : uniqueEnvs.entrySet()) {
+            testSnippets.getEnvs().add(
+                    new TestCaseEnvs(
+                            UUID.randomUUID(),
+                            entry.getKey(),
+                            entry.getValue(),
+                            testSnippets
+                    )
+            );
         }
+
         return testRepo.save(testSnippets);
     }
-
     @Transactional
     public TestSnippets updateTest(UpdateDTO dto) {
+        logger.info("{}",dto.testId());
         TestSnippets existing = testRepo.findById(dto.testId())
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
-
         existing.getInputs().clear();
         existing.getExpectedOutputs().clear();
-
+        logger.info("explodeas hewre");
         for (String input : dto.inputs()) {
             existing.getInputs().add(new TestCasesInput(UUID.randomUUID(), input, existing));
         }
+        logger.info("explodeas hewre2");
         for (String output : dto.outputs()) {
             existing.getExpectedOutputs().add(new TestCaseExpectedOutput(UUID.randomUUID(), output, existing));
         }
+        logger.info("explodeas hewre3");
         for (Map.Entry<String, String> entry : dto.envs().entrySet()) {
             existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
-        existing.setName(dto.name());
+        logger.info("explodeas hewre4");
+        if(dto.name() != null ){existing.setName(dto.name());}
         return testRepo.save(existing);
     }
 
