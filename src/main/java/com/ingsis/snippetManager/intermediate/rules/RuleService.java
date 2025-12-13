@@ -13,6 +13,8 @@ import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
+import com.ingsis.snippetManager.intermediate.rules.model.formatted.SnippetFormatted;
+import com.ingsis.snippetManager.intermediate.rules.repositories.SnippetFormattedInterface;
 import com.ingsis.snippetManager.intermediate.rules.repositories.RuleRepository;
 import com.ingsis.snippetManager.intermediate.rules.repositories.UserRuleRepository;
 import com.ingsis.snippetManager.redis.dto.request.FormatRequestEvent;
@@ -42,11 +44,12 @@ public class RuleService {
     private final Converter converter;
     private final EngineService engineService;
     private final SnippetRepo snippetRepo;
+    private final SnippetFormattedInterface snippetFormattedInterface;
     private final UserPermissionService userPermissionService;
 
     public RuleService(RuleRepository ruleRepository, UserRuleRepository userRuleRepository,
             LintRequestProducer lintRequestProducer, FormatRequestProducer formatRequestProducer, Converter converter,
-            EngineService engineService, SnippetRepo snippetRepo, UserPermissionService userPermissionService) {
+            EngineService engineService, SnippetRepo snippetRepo, UserPermissionService userPermissionService,SnippetFormattedInterface snippetFormattedInterface) {
         this.ruleRepository = ruleRepository;
         this.userRuleRepository = userRuleRepository;
         this.lintRequestProducer = lintRequestProducer;
@@ -55,6 +58,7 @@ public class RuleService {
         this.engineService = engineService;
         this.snippetRepo = snippetRepo;
         this.userPermissionService = userPermissionService;
+        this.snippetFormattedInterface = snippetFormattedInterface;
     }
 
     private String getToken(Jwt token) {
@@ -152,9 +156,19 @@ public class RuleService {
                     .orElseThrow(() -> new IllegalArgumentException("Snippet not found"));
             snippetToFormat.setFormatStatus(SnippetStatus.PENDING);
             snippetRepo.save(snippetToFormat);
-            List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(jwt), RuleType.LINT);
+            List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(jwt), RuleType.FORMATTING);
             FormatterSupportedRules formatRules = converter.convertToFormatterRules(rules);
-            FormatRequestEvent event = new FormatRequestEvent(getOwnerId(jwt), snippet,
+            UUID formatId = snippetFormattedInterface
+                    .findById(snippet)
+                    .map(SnippetFormatted::getFormattedSnippetId)
+                    .orElseGet(() -> {
+                        UUID newFormatId = UUID.randomUUID();
+                        snippetFormattedInterface.save(
+                                new SnippetFormatted(snippet, newFormatId)
+                        );
+                        return newFormatId;
+                    });
+            FormatRequestEvent event = new FormatRequestEvent(getOwnerId(jwt), snippet,formatId,
                     SupportedLanguage.valueOf(snippetToFormat.getLanguage().toUpperCase()),
                     snippetToFormat.getVersion(), formatRules);
             formatRequestProducer.publish(event);
@@ -178,14 +192,45 @@ public class RuleService {
     }
 
     public SnippetStatus formatSnippet(UUID snippetId, Jwt token) {
-        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Test not found"));
-        List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(token), RuleType.FORMATTING);
-        FormatterSupportedRules formatterRules = converter.convertToFormatterRules(rules);
-        FormatRequestDTO dto = new FormatRequestDTO(snippet.getId(), snippet.getVersion(),
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), formatterRules);
-        return engineService.format(dto, getToken(token)).getStatusCode().is2xxSuccessful()
-                ? SnippetStatus.PASSED
-                : SnippetStatus.FAILED;
+
+        Snippet snippet = snippetRepo.findById(snippetId)
+                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+
+        List<Rule> rules =
+                ruleRepository.findAllByOwnerIdAndType(
+                        getOwnerId(token),
+                        RuleType.FORMATTING
+                );
+
+        FormatterSupportedRules formatterRules =
+                converter.convertToFormatterRules(rules);
+
+        UUID formatId = snippetFormattedInterface
+                .findById(snippetId)
+                .map(SnippetFormatted::getFormattedSnippetId)
+                .orElse(UUID.randomUUID());
+
+        FormatRequestDTO dto = new FormatRequestDTO(
+                snippet.getId(),
+                formatId,
+                snippet.getVersion(),
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
+                formatterRules
+        );
+
+        ResponseEntity<UUID> response =
+                engineService.format(dto, getToken(token));
+
+        if (!response.getStatusCode().is2xxSuccessful()
+                || response.getBody() == null) {
+            return SnippetStatus.FAILED;
+        }
+
+        snippetFormattedInterface.save(
+                new SnippetFormatted(snippetId, formatId)
+        );
+
+        return SnippetStatus.PASSED;
     }
 
     public ValidationResult validateSnippet(SimpleRunSnippet dto, Jwt token) {
@@ -196,14 +241,20 @@ public class RuleService {
         return result.getBody();
     }
 
-    public ValidationResult analyzeSnippet(FormatRequestDTO snippet, Jwt token) {
+    public ValidationResult analyzeSnippet(UUID snippetId, Jwt token) {
+        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Test not found"));
         List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(token), RuleType.LINT);
         LintSupportedRules lintRules = converter.convertToLintRules(rules);
-        LintRequestDTO dto = new LintRequestDTO(snippet.snippetId(), snippet.language(), snippet.version(), lintRules);
+        LintRequestDTO dto = new LintRequestDTO(snippetId, SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), lintRules);
         ResponseEntity<ValidationResult> result = engineService.analyze(dto, getToken(token));
         if (!result.getStatusCode().is2xxSuccessful() || result.getBody() == null) {
             throw new IllegalArgumentException("Snippet validation failed");
         }
         return result.getBody();
+    }
+
+    public ValidationResult convertToSimpleSnippetRunAndValidate(UUID snippetId, Jwt jwt){
+        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Test not found"));
+        return validateSnippet(new SimpleRunSnippet(snippetId,SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),snippet.getVersion()),jwt);
     }
 }

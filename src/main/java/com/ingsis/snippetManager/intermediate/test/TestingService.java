@@ -130,7 +130,13 @@ public class TestingService {
             existing.getExpectedOutputs().add(new TestCaseExpectedOutput(UUID.randomUUID(), output, existing));
         }
         logger.info("explodeas hewre3");
-        for (Map.Entry<String, String> entry : dto.envs().entrySet()) {
+        Map<String, String> uniqueEnvs = new LinkedHashMap<>();
+        dto.envs().forEach((k, v) -> {
+            if (!uniqueEnvs.containsKey(k)) {
+                uniqueEnvs.put(k, v);
+            }
+        });
+        for (Map.Entry<String, String> entry : uniqueEnvs.entrySet()) {
             existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
         logger.info("explodeas hewre4");

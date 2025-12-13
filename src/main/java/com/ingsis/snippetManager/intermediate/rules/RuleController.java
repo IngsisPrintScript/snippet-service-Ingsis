@@ -81,20 +81,20 @@ public class RuleController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/format")
-    public ResponseEntity<SnippetStatus> formatSnippet(@RequestBody UUID snippetId, @AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/format")
+    public ResponseEntity<SnippetStatus> formatSnippet(@RequestParam UUID snippetId, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(ruleService.formatSnippet(snippetId, jwt));
     }
 
-    @PostMapping("/lint")
-    public ResponseEntity<ValidationResult> analyzeSnippet(@RequestBody FormatRequestDTO dto,
+    @GetMapping("/lint")
+    public ResponseEntity<ValidationResult> analyzeSnippet(@RequestParam UUID snippetId,
             @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ruleService.analyzeSnippet(dto, jwt));
+        return ResponseEntity.ok(ruleService.analyzeSnippet(snippetId, jwt));
     }
 
-    @PostMapping("/validate")
-    public ResponseEntity<ValidationResult> validateSnippet(@RequestBody SimpleRunSnippet dto,
+    @GetMapping("/validate")
+    public ResponseEntity<ValidationResult> validateSnippet(@RequestParam UUID snippetId,
             @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ruleService.validateSnippet(dto, jwt));
+        return ResponseEntity.ok(ruleService.convertToSimpleSnippetRunAndValidate(snippetId, jwt));
     }
 }

@@ -293,7 +293,8 @@ public class SnippetService {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
         Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        return new DataDTO(snippet, getOwnerId(jwt), assetService.getSnippet(snippet.getId()).getBody());
+        String content = assetService.getSnippet(snippet.getId()).getBody();
+        return new DataDTO(snippet, getOwnerId(jwt), content);
     }
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
