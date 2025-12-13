@@ -6,9 +6,12 @@ import com.ingsis.snippetManager.intermediate.engine.dto.response.ValidationResu
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
+import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import java.util.List;
 import java.util.UUID;
+
+import com.ingsis.snippetManager.snippet.dto.testing.UpdateDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -74,10 +77,10 @@ public class RuleController {
         return ResponseEntity.ok(rules);
     }
 
-    @PutMapping("/{ruleId}/update")
-    public ResponseEntity<Rule> updateUserRule(@PathVariable UUID ruleId, @RequestParam String newValue,
+    @PutMapping("/update")
+    public ResponseEntity<List<Rule>> updateUserRule(@RequestBody List<UpdateRuleDTO> newValue,
             @AuthenticationPrincipal Jwt jwt) {
-        Rule updated = ruleService.updateUserRule(jwt, ruleId, newValue);
+        List<Rule> updated = ruleService.updateUserRule(jwt, newValue);
         return ResponseEntity.ok(updated);
     }
 

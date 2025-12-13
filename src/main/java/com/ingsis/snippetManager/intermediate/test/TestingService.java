@@ -116,20 +116,16 @@ public class TestingService {
     }
     @Transactional
     public TestSnippets updateTest(UpdateDTO dto) {
-        logger.info("{}",dto.testId());
         TestSnippets existing = testRepo.findById(dto.testId())
                 .orElseThrow(() -> new EntityNotFoundException("Test not found"));
         existing.getInputs().clear();
         existing.getExpectedOutputs().clear();
-        logger.info("explodeas hewre");
         for (String input : dto.inputs()) {
             existing.getInputs().add(new TestCasesInput(UUID.randomUUID(), input, existing));
         }
-        logger.info("explodeas hewre2");
         for (String output : dto.outputs()) {
             existing.getExpectedOutputs().add(new TestCaseExpectedOutput(UUID.randomUUID(), output, existing));
         }
-        logger.info("explodeas hewre3");
         Map<String, String> uniqueEnvs = new LinkedHashMap<>();
         dto.envs().forEach((k, v) -> {
             if (!uniqueEnvs.containsKey(k)) {
@@ -139,7 +135,6 @@ public class TestingService {
         for (Map.Entry<String, String> entry : uniqueEnvs.entrySet()) {
             existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
-        logger.info("explodeas hewre4");
         if(dto.name() != null ){existing.setName(dto.name());}
         return testRepo.save(existing);
     }

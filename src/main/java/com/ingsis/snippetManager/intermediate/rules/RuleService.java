@@ -13,6 +13,7 @@ import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
+import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
 import com.ingsis.snippetManager.intermediate.rules.model.formatted.SnippetFormatted;
 import com.ingsis.snippetManager.intermediate.rules.repositories.SnippetFormattedInterface;
 import com.ingsis.snippetManager.intermediate.rules.repositories.RuleRepository;
@@ -25,6 +26,8 @@ import com.ingsis.snippetManager.redis.requestProducer.LintRequestProducer;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.Converter;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -32,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RuleService {
@@ -175,20 +179,39 @@ public class RuleService {
         }
     }
 
-    public Rule updateUserRule(Jwt jwt, UUID ruleId, String newValue) {
-        userRuleRepository.findByUserIdAndRuleId(getOwnerId(jwt), ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("User does not have this rule assigned"));
+    @Transactional
+    public List<Rule> updateUserRule(Jwt jwt, List<UpdateRuleDTO> newValue) {
+        String ownerId = getOwnerId(jwt);
 
-        Rule rule = ruleRepository.findById(ruleId).orElseThrow(() -> new IllegalArgumentException("Rule not found"));
+        if (newValue.isEmpty()) return List.of();
 
-        rule.setValue(newValue);
-        Rule newRule = ruleRepository.save(rule);
-        if (rule.getType() == RuleType.FORMATTING) {
+        List<Rule> updatedRules = new ArrayList<>();
+
+        for (UpdateRuleDTO dto : newValue) {
+
+            userRuleRepository.findByUserIdAndRuleId(ownerId, dto.ruleId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("User does not have rule " + dto.ruleId()));
+
+            Rule rule = ruleRepository.findById(dto.ruleId())
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found"));
+
+            rule.setValue(dto.value());
+            updatedRules.add(rule);
+        }
+        ruleRepository.saveAll(updatedRules);
+        if(updatedRules.isEmpty()){
+            return updatedRules;
+        }
+
+        RuleType type = updatedRules.getLast().getType();
+        if (type == RuleType.FORMATTING) {
             runFormatRulesForUser(jwt);
-        } else if (rule.getType() == RuleType.LINT) {
+        } else if (type == RuleType.LINT) {
             runLintRulesForUser(jwt);
         }
-        return newRule;
+
+        return updatedRules;
     }
 
     public SnippetStatus formatSnippet(UUID snippetId, Jwt token) {
