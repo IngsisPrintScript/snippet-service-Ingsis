@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.UUID;
+
 @Service
 public class EngineService {
 
@@ -57,8 +59,8 @@ public class EngineService {
         return post("/run/execute", dto, token, RunSnippetResponseDTO.class);
     }
 
-    public ResponseEntity<String> format(FormatRequestDTO dto, String token) {
-        return post("/run/format", dto, token, String.class);
+    public ResponseEntity<UUID> format(FormatRequestDTO dto, String token) {
+        return post("/run/format", dto, token, UUID.class);
     }
 
     public ResponseEntity<ValidationResult> analyze(LintRequestDTO dto, String token) {

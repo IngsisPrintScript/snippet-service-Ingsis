@@ -30,7 +30,7 @@ public class Converter {
         boolean isAssignationSpaced = false;
         int printlnSeparationLines = 0;
 
-        List<Rule> formatRules = rules.stream().filter(r -> r.getType() == RuleType.LINT).toList();
+        List<Rule> formatRules = rules.stream().filter(r -> r.getType() == RuleType.FORMATTING).toList();
 
         for (Rule rule : formatRules) {
             switch (rule.getName()) {

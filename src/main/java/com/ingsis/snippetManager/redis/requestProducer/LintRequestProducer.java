@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,11 +17,11 @@ public class LintRequestProducer {
     private static final Logger logger = LoggerFactory.getLogger(LintRequestProducer.class);
 
     private final String streamName;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
     public LintRequestProducer(@Value("${redis.streams.lintRequest}") String streamName,
-            RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper) {
+                               StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.streamName = streamName;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;

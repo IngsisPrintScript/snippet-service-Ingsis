@@ -36,10 +36,10 @@ public class Snippet {
     private List<UUID> testId = new ArrayList<>();
 
     @OneToMany(mappedBy = "snippet", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TestStatus> testStatusList = new ArrayList<>();
+    private List<TestStatus> testStatus = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    private SnippetStatus lintStatus = SnippetStatus.TO_DO;
+    private SnippetStatus lintStatus = SnippetStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     private SnippetStatus formatStatus = SnippetStatus.TO_DO;
@@ -102,11 +102,11 @@ public class Snippet {
         this.lintStatus = lintStatus;
     }
     public List<TestStatus> getTestStatusList() {
-        return testStatusList;
+        return testStatus;
     }
 
     public void setTestStatusList(List<TestStatus> testStatusList) {
-        this.testStatusList = testStatusList;
+        this.testStatus = testStatusList;
     }
 
     public void setId(UUID id) {
@@ -131,5 +131,18 @@ public class Snippet {
 
     public void setTestId(List<UUID> testId) {
         this.testId = testId;
+    }
+
+    public void addOrUpdateTestStatus(UUID testId, SnippetStatus status) {
+
+        TestStatus ts = testStatus.stream().filter(t -> t.getTestId().equals(testId)).findFirst().orElseGet(() -> {
+            TestStatus newTs = new TestStatus();
+            newTs.setTestId(testId);
+            newTs.setSnippet(this);
+            testStatus.add(newTs);
+            return newTs;
+        });
+
+        ts.setTestStatus(status);
     }
 }

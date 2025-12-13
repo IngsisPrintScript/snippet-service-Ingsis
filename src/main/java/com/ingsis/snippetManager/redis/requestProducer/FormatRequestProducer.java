@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,11 +16,11 @@ public class FormatRequestProducer {
     private static final Logger logger = LoggerFactory.getLogger(FormatRequestProducer.class);
 
     private final String streamName;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
     public FormatRequestProducer(@Value("${redis.streams.formatRequest}") String streamName,
-            RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper) {
+            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.streamName = streamName;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;

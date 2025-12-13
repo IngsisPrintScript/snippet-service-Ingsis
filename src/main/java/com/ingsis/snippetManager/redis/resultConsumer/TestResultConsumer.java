@@ -1,12 +1,9 @@
 package com.ingsis.snippetManager.redis.resultConsumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ingsis.snippetManager.redis.config.TestResultHandlerService;
 import com.ingsis.snippetManager.redis.dto.result.TestResultEvent;
-import com.ingsis.snippetManager.snippet.Snippet;
-import com.ingsis.snippetManager.snippet.SnippetRepo;
-import com.ingsis.snippetManager.snippet.TestStatus;
 import jakarta.annotation.PreDestroy;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.austral.ingsis.redis.RedisStreamConsumer;
@@ -16,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamReceiver;
 import org.springframework.stereotype.Component;
 
@@ -26,15 +23,15 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
 
     private static final Logger logger = LoggerFactory.getLogger(TestResultConsumer.class);
     private final ObjectMapper objectMapper;
-    private final SnippetRepo snippetRepository;
+    private final TestResultHandlerService handler;
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public TestResultConsumer(@Value("${redis.streams.testResult}") String streamName,
-            @Value("${redis.groups.test}") String groupName, RedisTemplate<String, String> redisTemplate,
-            ObjectMapper objectMapper, SnippetRepo snippetRepository) {
+            @Value("${redis.groups.test}") String groupName, StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper, TestResultHandlerService handler) {
         super(streamName, groupName, redisTemplate);
         this.objectMapper = objectMapper;
-        this.snippetRepository = snippetRepository;
+        this.handler = handler;
     }
 
     @Override
@@ -42,31 +39,8 @@ public class TestResultConsumer extends RedisStreamConsumer<String> {
         executor.submit(() -> {
             try {
                 TestResultEvent event = objectMapper.readValue(record.getValue(), TestResultEvent.class);
-                logger.info("Received TestResultEvent for Snippet({}) - Test({}) - Status: {}", event.snippetId(),
-                        event.testId(), event.status());
 
-                Optional<Snippet> snippetOpt = snippetRepository.findById(event.snippetId());
-                if (snippetOpt.isEmpty()) {
-                    logger.warn("Snippet {} not found for test result", event.snippetId());
-                    return;
-                }
-
-                Snippet snippet = snippetOpt.get();
-                Optional<TestStatus> existing = snippet.getTestStatusList().stream()
-                        .filter(t -> t.getTestId().equals(event.testId())).findFirst();
-
-                if (existing.isPresent()) {
-                    existing.get().setTestStatus(event.status());
-                } else {
-                    TestStatus newStatus = new TestStatus();
-                    newStatus.setTestId(event.testId());
-                    newStatus.setTestStatus(event.status());
-                    snippet.getTestStatusList().add(newStatus);
-                }
-
-                snippetRepository.save(snippet);
-                logger.info("Updated Test({}) status for Snippet({}) -> {}", event.testId(), event.snippetId(),
-                        event.status());
+                handler.handle(event);
 
             } catch (Exception e) {
                 logger.error("Error processing TestResultEvent", e);

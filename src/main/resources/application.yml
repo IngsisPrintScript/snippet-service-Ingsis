@@ -9,7 +9,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   security:
     oauth2:
@@ -25,13 +24,6 @@ server:
   port: ${API_PORT}
   address: 0.0.0.0
 
-logging:
-  level:
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.security.oauth2.jwt: DEBUG
-    root: INFO
-  pattern:
-    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
 okta:
   oauth2:
     # Replace with the domain of your Auth0 tenant.
