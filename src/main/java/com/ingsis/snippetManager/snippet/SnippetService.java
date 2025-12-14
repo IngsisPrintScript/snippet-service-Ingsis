@@ -308,14 +308,16 @@ public class SnippetService {
         return repository.findAllById(uuids);
     }
 
-    public ResponseEntity<String> shareSnippet(UUID snippetId, Jwt jwt, ShareDTO shareDTO) {
+    public SnippetResponseDTO shareSnippet(UUID snippetId, Jwt jwt, ShareDTO shareDTO) {
+        Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
         if (!validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not Authorized to share snippet");
+            throw new SecurityException();
         }
         if (!authenticationService.userExists(shareDTO.userId(), jwt)) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("User not exist");
+            throw new NoSuchElementException();
         }
-        return userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
+        userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
+        return new SnippetResponseDTO(snippet,getOwnerId(jwt),assetService.getSnippet(snippetId).getBody(),"PASSED");
     }
 
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {

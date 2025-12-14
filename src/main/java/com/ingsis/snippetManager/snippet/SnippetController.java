@@ -133,9 +133,15 @@ public class SnippetController {
     }
 
     @PutMapping("/{snippetId}/share")
-    public ResponseEntity<String> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
+    public ResponseEntity<SnippetResponseDTO> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
             @PathVariable UUID snippetId) {
-        return snippetService.shareSnippet(snippetId, jwt, shareSnippetDTO);
+        try {
+            return ResponseEntity.ok(snippetService.shareSnippet(snippetId, jwt, shareSnippetDTO));
+        }catch (SecurityException e){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }catch (NoSuchElementException a){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @GetMapping("/{snippetId}/download")
