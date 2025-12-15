@@ -23,7 +23,7 @@ public class UserPermissionService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserPermissionService.class);
 
-    public UserPermissionService(@Value("${PERMISSION_URL}") String authServiceUrl) {
+    public UserPermissionService(@Value("${permission.service.base-url}") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authorizationServiceUrl = authServiceUrl;
     }

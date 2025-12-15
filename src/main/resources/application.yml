@@ -76,7 +76,7 @@ redis:
     lintRequest: ${REDIS_STREAM_REQUEST_LINT_KEY}
     lintResult: ${REDIS_STREAM_RESULT_LINT_KEY}
     formatRequest: ${REDIS_STREAM_REQUEST_FORMAT_KEY}
-    formatResult: ${REDIS_STREAM_RESULT_FORMAT_KEY}
+    formatResult:  ${REDIS_STREAM_RESULT_FORMAT_KEY}
     testRequest: ${REDIS_STREAM_REQUEST_TEST_KEY}
     testResult: ${REDIS_STREAM_RESULT_TEST_KEY}
   groups:
@@ -86,3 +86,15 @@ redis:
 
 bucket:
   url: ${BUCKET_URL}
+
+permission:
+  service:
+    base-url: ${PERMISSION_SERVICE_URL}
+
+engine:
+  service:
+    base-url: ${ENGINE_SERVICE_URL}
+
+auth:
+  service:
+    base-url: ${AUTHENTICATION_SERVICE_URL}

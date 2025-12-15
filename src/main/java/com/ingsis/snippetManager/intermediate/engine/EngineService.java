@@ -27,7 +27,7 @@ public class EngineService {
     private final String engineUrl;
     private final RestTemplate restTemplate;
 
-    public EngineService(@Value("${ENGINE_URL}") String engine) {
+    public EngineService(@Value("${engine.service.base-url}") String engine) {
         this.engineUrl = engine;
         this.restTemplate = new RestTemplate();
     }
