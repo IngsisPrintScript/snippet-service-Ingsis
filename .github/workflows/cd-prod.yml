@@ -1,4 +1,4 @@
-name: Build & Push Test Image
+name: Build & Push Test Image - prod
 
 on:
   push:
@@ -16,6 +16,6 @@ jobs:
     uses: IngsisPrintScript/workflows-and-actions/.github/workflows/deploy.yaml@main
     with:
       environment: "production"
-      service_name: "permission"
-      image_route: "ghcr.io/ingsisprintscript/permission-service:prod"
+      service_name: "snippet"
+      image_route: "ghcr.io/ingsisprintscript/snippet-service:prod"
     secrets: inherit
