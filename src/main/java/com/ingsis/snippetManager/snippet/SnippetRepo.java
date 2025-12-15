@@ -1,6 +1,7 @@
 package com.ingsis.snippetManager.snippet;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,11 @@ public interface SnippetRepo extends JpaRepository<Snippet, UUID> {
             @Param("ids") List<UUID> ids, Sort sort);
 
     List<Snippet> findByName(String name);
+
+    @Query("""
+            select s from Snippet s
+            left join fetch s.testStatus
+            where s.id = :snippetId
+            """)
+    Optional<Snippet> findByIdWithTestStatus(UUID snippetId);
 }

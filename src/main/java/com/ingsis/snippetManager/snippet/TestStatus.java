@@ -1,5 +1,6 @@
 package com.ingsis.snippetManager.snippet;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,6 +29,7 @@ public class TestStatus {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snippet_id", nullable = false)
+    @JsonIgnore
     private Snippet snippet;
 
     public UUID getId() {
@@ -53,4 +55,8 @@ public class TestStatus {
     public void setTestStatus(SnippetStatus testStatus) {
         this.testStatus = testStatus;
     }
+    public void setSnippet(Snippet snippet) {
+        this.snippet = snippet;
+    }
+
 }

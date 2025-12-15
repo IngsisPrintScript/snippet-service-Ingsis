@@ -27,6 +27,9 @@ public class TestSnippets {
     @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TestCaseExpectedOutput> expectedOutputs = new ArrayList<>();
 
+    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TestCaseEnvs> envs = new ArrayList<>();
+
     public TestSnippets() {
     }
 
@@ -62,5 +65,17 @@ public class TestSnippets {
 
     public void setExpectedOutputs(List<TestCaseExpectedOutput> expectedOutputs) {
         this.expectedOutputs = expectedOutputs;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<TestCaseEnvs> getEnvs() {
+        return envs;
+    }
+
+    public void setEnvs(List<TestCaseEnvs> envs) {
+        this.envs = envs;
     }
 }
