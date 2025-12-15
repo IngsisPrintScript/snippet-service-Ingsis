@@ -133,13 +133,13 @@ public class SnippetController {
     }
 
     @PutMapping("/{snippetId}/share")
-    public ResponseEntity<SnippetResponseDTO> shareSnippet(@AuthenticationPrincipal Jwt jwt, @RequestBody ShareDTO shareSnippetDTO,
-            @PathVariable UUID snippetId) {
+    public ResponseEntity<SnippetResponseDTO> shareSnippet(@AuthenticationPrincipal Jwt jwt,
+            @RequestBody ShareDTO shareSnippetDTO, @PathVariable UUID snippetId) {
         try {
             return ResponseEntity.ok(snippetService.shareSnippet(snippetId, jwt, shareSnippetDTO));
-        }catch (SecurityException e){
+        } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }catch (NoSuchElementException a){
+        } catch (NoSuchElementException a) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }

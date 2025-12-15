@@ -1,7 +1,5 @@
 package com.ingsis.snippetManager.intermediate.rules;
 
-import com.ingsis.snippetManager.intermediate.engine.dto.request.FormatRequestDTO;
-import com.ingsis.snippetManager.intermediate.engine.dto.request.SimpleRunSnippet;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.ValidationResult;
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
@@ -10,8 +8,6 @@ import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import java.util.List;
 import java.util.UUID;
-
-import com.ingsis.snippetManager.snippet.dto.testing.UpdateDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;

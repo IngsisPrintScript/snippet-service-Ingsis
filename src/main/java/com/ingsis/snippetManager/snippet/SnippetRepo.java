@@ -25,9 +25,9 @@ public interface SnippetRepo extends JpaRepository<Snippet, UUID> {
     List<Snippet> findByName(String name);
 
     @Query("""
-    select s from Snippet s
-    left join fetch s.testStatus
-    where s.id = :snippetId
-    """)
+            select s from Snippet s
+            left join fetch s.testStatus
+            where s.id = :snippetId
+            """)
     Optional<Snippet> findByIdWithTestStatus(UUID snippetId);
 }

@@ -4,6 +4,6 @@ import com.ingsis.snippetManager.intermediate.engine.supportedLanguage.Supported
 import com.ingsis.snippetManager.intermediate.engine.supportedRules.FormatterSupportedRules;
 import java.util.UUID;
 
-public record FormatRequestEvent(String ownerId, UUID snippetId,UUID formatId, SupportedLanguage language, String version,
-        FormatterSupportedRules rules) {
+public record FormatRequestEvent(String ownerId, UUID snippetId, UUID formatId, SupportedLanguage language,
+        String version, FormatterSupportedRules rules) {
 }

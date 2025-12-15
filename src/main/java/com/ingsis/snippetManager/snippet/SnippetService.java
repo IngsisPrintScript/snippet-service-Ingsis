@@ -317,7 +317,7 @@ public class SnippetService {
             throw new NoSuchElementException();
         }
         userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
-        return new SnippetResponseDTO(snippet,getOwnerId(jwt),assetService.getSnippet(snippetId).getBody(),"PASSED");
+        return new SnippetResponseDTO(snippet, getOwnerId(jwt), assetService.getSnippet(snippetId).getBody(), "PASSED");
     }
 
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {

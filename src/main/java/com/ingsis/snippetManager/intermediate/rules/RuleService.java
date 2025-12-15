@@ -15,8 +15,8 @@ import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
 import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
 import com.ingsis.snippetManager.intermediate.rules.model.formatted.SnippetFormatted;
-import com.ingsis.snippetManager.intermediate.rules.repositories.SnippetFormattedInterface;
 import com.ingsis.snippetManager.intermediate.rules.repositories.RuleRepository;
+import com.ingsis.snippetManager.intermediate.rules.repositories.SnippetFormattedInterface;
 import com.ingsis.snippetManager.intermediate.rules.repositories.UserRuleRepository;
 import com.ingsis.snippetManager.redis.dto.request.FormatRequestEvent;
 import com.ingsis.snippetManager.redis.dto.request.LintRequestEvent;
@@ -26,7 +26,6 @@ import com.ingsis.snippetManager.redis.requestProducer.LintRequestProducer;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.Converter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +52,8 @@ public class RuleService {
 
     public RuleService(RuleRepository ruleRepository, UserRuleRepository userRuleRepository,
             LintRequestProducer lintRequestProducer, FormatRequestProducer formatRequestProducer, Converter converter,
-            EngineService engineService, SnippetRepo snippetRepo, UserPermissionService userPermissionService,SnippetFormattedInterface snippetFormattedInterface) {
+            EngineService engineService, SnippetRepo snippetRepo, UserPermissionService userPermissionService,
+            SnippetFormattedInterface snippetFormattedInterface) {
         this.ruleRepository = ruleRepository;
         this.userRuleRepository = userRuleRepository;
         this.lintRequestProducer = lintRequestProducer;
@@ -162,17 +162,13 @@ public class RuleService {
             snippetRepo.save(snippetToFormat);
             List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(jwt), RuleType.FORMATTING);
             FormatterSupportedRules formatRules = converter.convertToFormatterRules(rules);
-            UUID formatId = snippetFormattedInterface
-                    .findById(snippet)
-                    .map(SnippetFormatted::getFormattedSnippetId)
+            UUID formatId = snippetFormattedInterface.findById(snippet).map(SnippetFormatted::getFormattedSnippetId)
                     .orElseGet(() -> {
                         UUID newFormatId = UUID.randomUUID();
-                        snippetFormattedInterface.save(
-                                new SnippetFormatted(snippet, newFormatId)
-                        );
+                        snippetFormattedInterface.save(new SnippetFormatted(snippet, newFormatId));
                         return newFormatId;
                     });
-            FormatRequestEvent event = new FormatRequestEvent(getOwnerId(jwt), snippet,formatId,
+            FormatRequestEvent event = new FormatRequestEvent(getOwnerId(jwt), snippet, formatId,
                     SupportedLanguage.valueOf(snippetToFormat.getLanguage().toUpperCase()),
                     snippetToFormat.getVersion(), formatRules);
             formatRequestProducer.publish(event);
@@ -183,15 +179,15 @@ public class RuleService {
     public List<Rule> updateUserRule(Jwt jwt, List<UpdateRuleDTO> newValue) {
         String ownerId = getOwnerId(jwt);
 
-        if (newValue.isEmpty()) return List.of();
+        if (newValue.isEmpty())
+            return List.of();
 
         List<Rule> updatedRules = new ArrayList<>();
 
         for (UpdateRuleDTO dto : newValue) {
 
             userRuleRepository.findByUserIdAndRuleId(ownerId, dto.ruleId())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException("User does not have rule " + dto.ruleId()));
+                    .orElseThrow(() -> new IllegalArgumentException("User does not have rule " + dto.ruleId()));
 
             Rule rule = ruleRepository.findById(dto.ruleId())
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found"));
@@ -200,7 +196,7 @@ public class RuleService {
             updatedRules.add(rule);
         }
         ruleRepository.saveAll(updatedRules);
-        if(updatedRules.isEmpty()){
+        if (updatedRules.isEmpty()) {
             return updatedRules;
         }
 
@@ -216,42 +212,25 @@ public class RuleService {
 
     public SnippetStatus formatSnippet(UUID snippetId, Jwt token) {
 
-        Snippet snippet = snippetRepo.findById(snippetId)
-                .orElseThrow(() -> new RuntimeException("Snippet not found"));
+        Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
 
-        List<Rule> rules =
-                ruleRepository.findAllByOwnerIdAndType(
-                        getOwnerId(token),
-                        RuleType.FORMATTING
-                );
+        List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(token), RuleType.FORMATTING);
 
-        FormatterSupportedRules formatterRules =
-                converter.convertToFormatterRules(rules);
+        FormatterSupportedRules formatterRules = converter.convertToFormatterRules(rules);
 
-        UUID formatId = snippetFormattedInterface
-                .findById(snippetId)
-                .map(SnippetFormatted::getFormattedSnippetId)
+        UUID formatId = snippetFormattedInterface.findById(snippetId).map(SnippetFormatted::getFormattedSnippetId)
                 .orElse(UUID.randomUUID());
 
-        FormatRequestDTO dto = new FormatRequestDTO(
-                snippet.getId(),
-                formatId,
-                snippet.getVersion(),
-                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
-                formatterRules
-        );
+        FormatRequestDTO dto = new FormatRequestDTO(snippet.getId(), formatId, snippet.getVersion(),
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), formatterRules);
 
-        ResponseEntity<UUID> response =
-                engineService.format(dto, getToken(token));
+        ResponseEntity<UUID> response = engineService.format(dto, getToken(token));
 
-        if (!response.getStatusCode().is2xxSuccessful()
-                || response.getBody() == null) {
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             return SnippetStatus.FAILED;
         }
 
-        snippetFormattedInterface.save(
-                new SnippetFormatted(snippetId, formatId)
-        );
+        snippetFormattedInterface.save(new SnippetFormatted(snippetId, formatId));
 
         return SnippetStatus.PASSED;
     }
@@ -268,7 +247,8 @@ public class RuleService {
         Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Test not found"));
         List<Rule> rules = ruleRepository.findAllByOwnerIdAndType(getOwnerId(token), RuleType.LINT);
         LintSupportedRules lintRules = converter.convertToLintRules(rules);
-        LintRequestDTO dto = new LintRequestDTO(snippetId, SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), lintRules);
+        LintRequestDTO dto = new LintRequestDTO(snippetId,
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion(), lintRules);
         ResponseEntity<ValidationResult> result = engineService.analyze(dto, getToken(token));
         if (!result.getStatusCode().is2xxSuccessful() || result.getBody() == null) {
             throw new IllegalArgumentException("Snippet validation failed");
@@ -276,8 +256,9 @@ public class RuleService {
         return result.getBody();
     }
 
-    public ValidationResult convertToSimpleSnippetRunAndValidate(UUID snippetId, Jwt jwt){
+    public ValidationResult convertToSimpleSnippetRunAndValidate(UUID snippetId, Jwt jwt) {
         Snippet snippet = snippetRepo.findById(snippetId).orElseThrow(() -> new RuntimeException("Test not found"));
-        return validateSnippet(new SimpleRunSnippet(snippetId,SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),snippet.getVersion()),jwt);
+        return validateSnippet(new SimpleRunSnippet(snippetId,
+                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()), jwt);
     }
 }

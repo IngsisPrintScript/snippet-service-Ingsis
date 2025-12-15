@@ -25,7 +25,6 @@ import com.ingsis.snippetManager.snippet.dto.testing.TestToRunDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.UpdateDTO;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,17 +81,14 @@ public class TestingService {
 
     @Transactional
     protected TestSnippets createTestSnippets(TestDTO testDTO) {
-        TestSnippets testSnippets =
-                new TestSnippets(UUID.randomUUID(), testDTO.name(), testDTO.snippetId());
+        TestSnippets testSnippets = new TestSnippets(UUID.randomUUID(), testDTO.name(), testDTO.snippetId());
 
         for (String input : testDTO.inputs()) {
-            testSnippets.getInputs()
-                    .add(new TestCasesInput(UUID.randomUUID(), input, testSnippets));
+            testSnippets.getInputs().add(new TestCasesInput(UUID.randomUUID(), input, testSnippets));
         }
 
         for (String output : testDTO.expectedOutputs()) {
-            testSnippets.getExpectedOutputs()
-                    .add(new TestCaseExpectedOutput(UUID.randomUUID(), output, testSnippets));
+            testSnippets.getExpectedOutputs().add(new TestCaseExpectedOutput(UUID.randomUUID(), output, testSnippets));
         }
         Map<String, String> uniqueEnvs = new LinkedHashMap<>();
         testDTO.envs().forEach((k, v) -> {
@@ -102,14 +98,8 @@ public class TestingService {
         });
 
         for (Map.Entry<String, String> entry : uniqueEnvs.entrySet()) {
-            testSnippets.getEnvs().add(
-                    new TestCaseEnvs(
-                            UUID.randomUUID(),
-                            entry.getKey(),
-                            entry.getValue(),
-                            testSnippets
-                    )
-            );
+            testSnippets.getEnvs()
+                    .add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), testSnippets));
         }
 
         return testRepo.save(testSnippets);
@@ -135,7 +125,9 @@ public class TestingService {
         for (Map.Entry<String, String> entry : uniqueEnvs.entrySet()) {
             existing.getEnvs().add(new TestCaseEnvs(UUID.randomUUID(), entry.getKey(), entry.getValue(), existing));
         }
-        if(dto.name() != null ){existing.setName(dto.name());}
+        if (dto.name() != null) {
+            existing.setName(dto.name());
+        }
         return testRepo.save(existing);
     }
 
