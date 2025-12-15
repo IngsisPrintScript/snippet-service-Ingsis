@@ -2,9 +2,9 @@ name: Build & Push Test Image - prod
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ jobs:
   call-deploy-workflow:
     uses: IngsisPrintScript/workflows-and-actions/.github/workflows/deploy.yaml@main
     with:
-      environment: "production"
+      environment: "development"
       service_name: "snippet"
-      image_route: "ghcr.io/ingsisprintscript/snippet-service:prod"
+      image_route: "ghcr.io/ingsisprintscript/snippet-service:dev"
     secrets: inherit
