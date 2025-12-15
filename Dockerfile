@@ -1,6 +1,20 @@
-# --- Stage 1: build the application ---
+# syntax=docker/dockerfile:1
+
+
 FROM gradle:8.4-jdk21-alpine AS builder
-# (usa la imagen oficial de Gradle con JDK 21)
+
+ARG GITHUB_USER
+
+COPY . .
+
+RUN mkdir -p /home/gradle/.gradle && \
+    echo "gpr.user=${GITHUB_USER}" > /home/gradle/.gradle/gradle.properties && \
+    echo "gpr.key=${GITHUB_TOKEN}" >> /home/gradle/.gradle/gradle.properties
+
+RUN chmod +x gradlew
+
+
+RUN ./gradlew --no-daemon clean bootJar unzipNewRelic -x test
 
 WORKDIR /home/gradle/project
 
@@ -16,14 +30,16 @@ COPY . /home/gradle/project
 # Build real, generando el .jar usando el wrapper
 RUN chmod +x gradlew && ./gradlew --no-daemon clean bootJar
 
-RUN ./gradlew --no-daemon clean bootJar unzipNewRelic -x test
 
 
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+
 COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
+
+
 COPY --from=builder /home/gradle/project/build/ /tmp/build/
 
 RUN find /tmp/build -name "newrelic.jar" -exec cp {} /app/newrelic.jar \; \
@@ -31,6 +47,3 @@ RUN find /tmp/build -name "newrelic.jar" -exec cp {} /app/newrelic.jar \; \
 
 ENV JAVA_OPTS=""
 EXPOSE 8081
-
-
-ENTRYPOINT ["sh", "-c", "java -javaagent:/app/newrelic.jar $JAVA_OPTS -jar app.jar"]
