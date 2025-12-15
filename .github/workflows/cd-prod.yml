@@ -1,0 +1,21 @@
+name: Build & Push Test Image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+jobs:
+  call-deploy-workflow:
+    uses: IngsisPrintScript/workflows-and-actions/.github/workflows/deploy.yaml@main
+    with:
+      environment: "production"
+      service_name: "permission"
+      image_route: "ghcr.io/ingsisprintscript/permission-service:prod"
+    secrets: inherit
