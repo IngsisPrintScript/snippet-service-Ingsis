@@ -8,18 +8,15 @@ ARG GITHUB_TOKEN
 
 WORKDIR /home/gradle/project
 
-# Copiar código
 COPY . .
 
-# Crear archivo gradle.properties dentro del contenedor
 RUN mkdir -p /home/gradle/.gradle && \
     echo "gpr.user=${GITHUB_USER}" >> /home/gradle/.gradle/gradle.properties && \
     echo "gpr.key=${GITHUB_TOKEN}" >> /home/gradle/.gradle/gradle.properties
 
 RUN chmod +x gradlew
 
-# Build del JAR con credenciales disponibles
-RUN ./gradlew --no-daemon clean bootJar
+RUN ./gradlew --no-daemon clean bootJar unzipNewRelic
 
 # --- Stage 2: run the application ---
 FROM eclipse-temurin:21-jre-alpine
@@ -27,9 +24,11 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
+COPY --from=builder /home/gradle/project/build/newrelic/newrelic.jar /app/newrelic.jar
+COPY --from=builder /home/gradle/project/build/newrelic/newrelic.yml /app/newrelic.yml
 
 ENV JAVA_OPTS=""
 
 EXPOSE 8081
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -javaagent:/app/newrelic.jar $JAVA_OPTS -jar app.jar"]

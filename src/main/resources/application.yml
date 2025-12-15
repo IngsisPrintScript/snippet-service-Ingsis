@@ -1,43 +1,75 @@
 spring:
   application:
-    name: ingsis
+    name: ingsis-snippet-service
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://db:5432/snippet}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${AUTH0_ISSUER_URI}
+          audiences: ${AUTH0_AUDIENCE}
+
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
 
 server:
-  port: ${API_PORT}
+  port: ${API_PORT:8080}
   address: 0.0.0.0
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: false
+  tomcat:
+    connection-timeout: 5s
+    threads:
+      max: 200
+      min-spare: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
 
 logging:
   level:
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.security.oauth2.jwt: DEBUG
     root: INFO
+    org.springframework.security: WARN
   pattern:
-    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
-okta:
-  oauth2:
-    # Replace with the domain of your Auth0 tenant.
-    issuer: ${AUTH0_ISSUER_URI}
-    # Replace with the API Identifier for your Auth0 API.
-    audience: ${AUTH0_AUDIENCE}
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{trace.id:-}] %logger{36} - %msg%n"
 
 redis:
   streams:
