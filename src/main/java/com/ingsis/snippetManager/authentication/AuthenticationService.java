@@ -15,7 +15,7 @@ public class AuthenticationService {
     private final RestTemplate restTemplate;
     private final String authServiceUrl;
 
-    public AuthenticationService(@Value("${AUTHENTICATION_URL}") String authServiceUrl) {
+    public AuthenticationService(@Value("${auth.service.base-url}") String authServiceUrl) {
         this.restTemplate = new RestTemplate();
         this.authServiceUrl = authServiceUrl;
     }
