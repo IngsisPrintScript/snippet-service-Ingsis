@@ -157,9 +157,6 @@ public class SnippetService {
 
         List<Snippet> snippets = repository.findAllById(uuids);
 
-        // -------------------------
-        // FILTROS
-        // -------------------------
         if (filterDTO != null) {
             if (filterDTO.name() != null && !filterDTO.name().isEmpty()) {
                 String nameFilter = filterDTO.name().toLowerCase();
@@ -175,9 +172,6 @@ public class SnippetService {
             }
         }
 
-        // -------------------------
-        // SORT
-        // -------------------------
         if (filterDTO != null && filterDTO.sortBy() != null) {
             Comparator<Snippet> comparator = switch (filterDTO.sortBy()) {
                 case LANGUAGE ->
@@ -194,9 +188,6 @@ public class SnippetService {
 
         boolean mustValidate = filterDTO != null && filterDTO.compliance() != null;
 
-        // -------------------------
-        // MAPEO A DTO (CLAVE)
-        // -------------------------
         List<SnippetListItemDTO> result = new ArrayList<>();
 
         for (Snippet snippet : snippets) {
@@ -219,9 +210,6 @@ public class SnippetService {
                     snippet.getVersion(), findUserBySnippetId(snippet.getId(), jwt), status));
         }
 
-        // -------------------------
-        // SORT FINAL (por status)
-        // -------------------------
         if (filterDTO != null) {
             Comparator<SnippetListItemDTO> cmp = Comparator.comparing(s -> s.status().name());
 
@@ -232,9 +220,6 @@ public class SnippetService {
             result = result.stream().sorted(cmp).toList();
         }
 
-        // -------------------------
-        // PAGINACIÓN
-        // -------------------------
         int total = result.size();
         int from = Math.max(0, page * pageSize);
         int to = Math.min(from + pageSize, total);
@@ -334,13 +319,6 @@ public class SnippetService {
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
-    }
-
-    public List<Snippet> getAllSnippetsByOwner(Jwt jwt, Property property) {
-        logger.info("Get all snippets by owner {} with property {}", getOwnerId(jwt), property);
-        List<UUID> uuids = getAllUuids(getOwnerId(jwt), property, getToken(jwt));
-        logger.info("All uuids: {}", uuids);
-        return repository.findAllById(uuids);
     }
 
     public SnippetResponseDTO shareSnippet(UUID snippetId, Jwt jwt, ShareDTO shareDTO) {
