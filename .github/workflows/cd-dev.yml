@@ -1,4 +1,4 @@
-name: Build & Push Test Image
+name: Build & Push Test Image - dev
 
 on:
   push:
@@ -17,6 +17,6 @@ jobs:
     with:
       java-version: "21"
       environment: "development"
-      service_name: "permission"
-      image_route: "ghcr.io/ingsisprintscript/permission-service:dev"
+      service_name: "snippet"
+      image_route: "ghcr.io/ingsisprintscript/snippet-service:dev"
     secrets: inherit
