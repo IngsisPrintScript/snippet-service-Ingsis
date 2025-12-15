@@ -3,9 +3,9 @@ package com.ingsis.snippetManager.snippet;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.RunSnippetResponseDTO;
 import com.ingsis.snippetManager.intermediate.permissions.AuthorizationActions;
 import com.ingsis.snippetManager.snippet.dto.Converter;
-import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.ExecuteSnippetRequestDTO;
 import com.ingsis.snippetManager.snippet.dto.PaginatedSnippets;
+import com.ingsis.snippetManager.snippet.dto.SnippetDetailDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestFileDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.RequestSnippetDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.ShareDTO;
@@ -115,7 +115,7 @@ public class SnippetController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DataDTO> getSnippetById(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
+    public ResponseEntity<SnippetDetailDTO> getSnippetById(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
         try {
             return ResponseEntity.ok(snippetService.getSnippetById(UUID.fromString(id), jwt));
         } catch (NoSuchElementException e) {

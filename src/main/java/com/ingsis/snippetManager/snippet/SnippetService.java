@@ -13,8 +13,8 @@ import com.ingsis.snippetManager.intermediate.permissions.UserPermissionService;
 import com.ingsis.snippetManager.intermediate.rules.RuleService;
 import com.ingsis.snippetManager.intermediate.test.TestingService;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
-import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.PaginatedSnippets;
+import com.ingsis.snippetManager.snippet.dto.SnippetDetailDTO;
 import com.ingsis.snippetManager.snippet.dto.SnippetListItemDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
@@ -106,21 +106,42 @@ public class SnippetService {
             if (!result.valid()) {
                 deleteSnippetUserAuthorization(jwt, snippet.getId());
                 assetService.deleteSnippet(snippet.getId());
-                return new SnippetResponseDTO(snippet, jwt.getSubject(), content, "FAILED");
-            }
+                return new SnippetResponseDTO(
+                        snippet.getId(),
+                        snippet.getName(),
+                        snippet.getLanguage(),
+                        snippet.getVersion(),
+                        getOwnerId(jwt),
+                        content,
+                        "FAILED"
+                );            }
             repository.save(snippet);
-            return new SnippetResponseDTO(snippet, getOwnerId(jwt), content, "PENDING");
-        } catch (Exception e) {
+            return new SnippetResponseDTO(
+                    snippet.getId(),
+                    snippet.getName(),
+                    snippet.getLanguage(),
+                    snippet.getVersion(),
+                    getOwnerId(jwt),
+                    content,
+                    "PENDING"
+            );        } catch (Exception e) {
             deleteSnippetUserAuthorization(jwt, snippet.getId());
             assetService.deleteSnippet(snippet.getId());
-            return new SnippetResponseDTO(snippet, getOwnerId(jwt), content, "FAILED");
-        }
+            return new SnippetResponseDTO(
+                    snippet.getId(),
+                    snippet.getName(),
+                    snippet.getLanguage(),
+                    snippet.getVersion(),
+                    getOwnerId(jwt),
+                    content,
+                    "FAILED"
+            );        }
     }
 
     public SnippetResponseDTO updateSnippet(UUID id, Jwt jwt, Snippet updatedSnippet, String content) {
         String userId = getOwnerId(jwt);
         if (!validateSnippet(userId, id, AuthorizationActions.ALL, getToken(jwt))) {
-            return new SnippetResponseDTO(null, userId, null, "forbidden");
+            return new SnippetResponseDTO(null,null,null,null, userId, null, "forbidden");
         }
         Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
         UUID random = UUID.randomUUID();
@@ -128,8 +149,15 @@ public class SnippetService {
         ValidationResult result = ruleService.validateSnippet(new SimpleRunSnippet(random,
                 SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()), jwt);
         if (!result.valid()) {
-            return new SnippetResponseDTO(snippet, userId, assetService.getSnippet(snippet.getId()).getBody(),
-                    "FAILED");
+            return new SnippetResponseDTO(
+                    snippet.getId(),
+                    snippet.getName(),
+                    snippet.getLanguage(),
+                    snippet.getVersion(),
+                    userId,
+                    content,
+                    "FAILED"
+            );
         }
         snippet.setName(updatedSnippet.getName());
         snippet.setDescription(updatedSnippet.getDescription());
@@ -140,12 +168,26 @@ public class SnippetService {
             repository.save(snippet);
         } catch (Exception e) {
             assetService.deleteSnippet(random);
-            return new SnippetResponseDTO(snippet, userId, assetService.getSnippet(snippet.getId()).getBody(),
-                    "FAILED");
+            return new SnippetResponseDTO(
+                    snippet.getId(),
+                    snippet.getName(),
+                    snippet.getLanguage(),
+                    snippet.getVersion(),
+                    userId,
+                    content,
+                    "FAILED"
+            );
         }
         testingService.runAllTestsForSnippet(snippet.getId(), jwt);
-        return new SnippetResponseDTO(snippet, userId, content, "PENDING");
-    }
+        return new SnippetResponseDTO(
+                snippet.getId(),
+                snippet.getName(),
+                snippet.getLanguage(),
+                snippet.getVersion(),
+                userId,
+                content,
+                "PENDING"
+        );    }
 
     public PaginatedSnippets getFilteredSnippets(SnippetFilterDTO filterDTO, int page, int pageSize, Jwt jwt) {
         List<UUID> uuids = getAllUuids(getOwnerId(jwt), filterDTO != null ? filterDTO.property() : Property.BOTH,
@@ -317,15 +359,22 @@ public class SnippetService {
         return ResponseEntity.ok(testingService.deleteTestsBySnippet(snippetId));
     }
 
-    public DataDTO getSnippetById(UUID id, Jwt jwt) {
+    public SnippetDetailDTO getSnippetById(UUID id, Jwt jwt) {
         if (!validateSnippet(getOwnerId(jwt), id, AuthorizationActions.ALL, getToken(jwt))
                 && !validateSnippet(getOwnerId(jwt), id, AuthorizationActions.READ, getToken(jwt))) {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
         Snippet snippet = repository.findById(id).orElseThrow(() -> new RuntimeException("Snippet not found"));
         String content = assetService.getSnippet(snippet.getId()).getBody();
-        return new DataDTO(snippet, getOwnerId(jwt), content);
-    }
+        return new SnippetDetailDTO(
+                snippet.getId(),
+                snippet.getName(),
+                snippet.getDescription(),
+                snippet.getLanguage(),
+                snippet.getVersion(),
+                findUserBySnippetId(snippet.getId(), jwt),
+                content
+        );    }
 
     public ResponseEntity<String> saveSnippetContent(UUID snippetId, String content) {
         return assetService.saveSnippet(snippetId, content == null ? "" : content);
@@ -347,8 +396,15 @@ public class SnippetService {
             throw new NoSuchElementException();
         }
         userPermissionService.createUser(shareDTO.userId(), shareDTO.action(), snippetId, getToken(jwt));
-        return new SnippetResponseDTO(snippet, getOwnerId(jwt), assetService.getSnippet(snippetId).getBody(), "PASSED");
-    }
+        return new SnippetResponseDTO(
+                snippet.getId(),
+                snippet.getName(),
+                snippet.getLanguage(),
+                snippet.getVersion(),
+                getOwnerId(jwt),
+                "",
+                "PASSED"
+        );    }
 
     public String findUserBySnippetId(UUID snippetId, Jwt jwt) {
         String userId = userPermissionService.getUserIdBySnippetId(snippetId, jwt.getTokenValue());
