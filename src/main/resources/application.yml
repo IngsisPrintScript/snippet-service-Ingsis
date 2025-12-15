@@ -16,7 +16,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
@@ -86,3 +86,4 @@ redis:
 
 bucket:
   url: ${BUCKET_URL}
+
