@@ -8,6 +8,7 @@ import com.ingsis.snippetManager.intermediate.engine.dto.request.TestRequestDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.RunSnippetResponseDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.TestResponseDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.ValidationResult;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,8 +58,8 @@ public class EngineService {
         return post("/run/execute", dto, token, RunSnippetResponseDTO.class);
     }
 
-    public ResponseEntity<String> format(FormatRequestDTO dto, String token) {
-        return post("/run/format", dto, token, String.class);
+    public ResponseEntity<UUID> format(FormatRequestDTO dto, String token) {
+        return post("/run/format", dto, token, UUID.class);
     }
 
     public ResponseEntity<ValidationResult> analyze(LintRequestDTO dto, String token) {

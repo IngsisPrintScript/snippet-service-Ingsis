@@ -1,11 +1,10 @@
 package com.ingsis.snippetManager.intermediate.rules;
 
-import com.ingsis.snippetManager.intermediate.engine.dto.request.FormatRequestDTO;
-import com.ingsis.snippetManager.intermediate.engine.dto.request.SimpleRunSnippet;
 import com.ingsis.snippetManager.intermediate.engine.dto.response.ValidationResult;
 import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
+import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +31,11 @@ public class RuleController {
         this.ruleService = ruleService;
     }
 
+    @PostMapping("/initialize")
+    public ResponseEntity<String> initialize(@AuthenticationPrincipal Jwt jwt) {
+        ruleService.initializeDefaultRules(jwt);
+        return ResponseEntity.ok("Default rules initialized");
+    }
     @PostMapping
     public ResponseEntity<Rule> createRule(@RequestParam String name, @RequestParam String value,
             @RequestParam RuleType type, @AuthenticationPrincipal Jwt jwt) {
@@ -40,13 +44,14 @@ public class RuleController {
     }
 
     @PutMapping("/{ruleId}")
-    public ResponseEntity<Rule> updateRule(@PathVariable UUID ruleId, @RequestParam String newValue) {
+    public ResponseEntity<Rule> updateRule(@PathVariable UUID ruleId, @RequestParam String newValue,
+            @AuthenticationPrincipal Jwt jwt) {
         Rule updated = ruleService.updateGlobalRule(ruleId, newValue);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{ruleId}")
-    public ResponseEntity<String> deleteRule(@PathVariable UUID ruleId) {
+    public ResponseEntity<String> deleteRule(@PathVariable UUID ruleId, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(ruleService.deleteRule(ruleId));
     }
 
@@ -68,28 +73,27 @@ public class RuleController {
         return ResponseEntity.ok(rules);
     }
 
-    @PutMapping("/{ruleId}/update")
-    public ResponseEntity<Rule> updateUserRule(@PathVariable UUID ruleId, @RequestParam String newValue,
+    @PutMapping("/update")
+    public ResponseEntity<List<Rule>> updateUserRule(@RequestBody List<UpdateRuleDTO> newValue,
             @AuthenticationPrincipal Jwt jwt) {
-        Rule updated = ruleService.updateUserRule(jwt, ruleId, newValue);
+        List<Rule> updated = ruleService.updateUserRule(jwt, newValue);
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/format")
-    public ResponseEntity<SnippetStatus> formatSnippet(@RequestBody FormatRequestDTO dto,
-            @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ruleService.formatSnippet(dto, jwt));
+    @GetMapping("/format")
+    public ResponseEntity<SnippetStatus> formatSnippet(@RequestParam UUID snippetId, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(ruleService.formatSnippet(snippetId, jwt));
     }
 
-    @PostMapping("/lint")
-    public ResponseEntity<ValidationResult> analyzeSnippet(@RequestBody FormatRequestDTO dto,
+    @GetMapping("/lint")
+    public ResponseEntity<ValidationResult> analyzeSnippet(@RequestParam UUID snippetId,
             @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ruleService.analyzeSnippet(dto, jwt));
+        return ResponseEntity.ok(ruleService.analyzeSnippet(snippetId, jwt));
     }
 
-    @PostMapping("/validate")
-    public ResponseEntity<ValidationResult> validateSnippet(@RequestBody SimpleRunSnippet dto,
+    @GetMapping("/validate")
+    public ResponseEntity<ValidationResult> validateSnippet(@RequestParam UUID snippetId,
             @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ruleService.validateSnippet(dto, jwt));
+        return ResponseEntity.ok(ruleService.convertToSimpleSnippetRunAndValidate(snippetId, jwt));
     }
 }

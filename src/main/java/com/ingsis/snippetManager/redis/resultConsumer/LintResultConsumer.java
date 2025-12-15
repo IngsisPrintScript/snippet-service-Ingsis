@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamReceiver;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +27,7 @@ public class LintResultConsumer extends RedisStreamConsumer<String> {
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public LintResultConsumer(@Value("${redis.streams.lintResult}") String streamName,
-            @Value("${redis.groups.lint}") String groupName, RedisTemplate<String, String> redisTemplate,
+            @Value("${redis.groups.lint}") String groupName, StringRedisTemplate redisTemplate,
             ObjectMapper objectMapper, SnippetRepo snippetRepository) {
         super(streamName, groupName, redisTemplate);
         this.objectMapper = objectMapper;

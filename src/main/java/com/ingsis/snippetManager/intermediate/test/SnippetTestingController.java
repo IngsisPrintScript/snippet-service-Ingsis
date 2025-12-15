@@ -39,6 +39,8 @@ public class SnippetTestingController {
             TestSnippets created = testSnippetService.createTestSnippets(testDTO, jwt);
             GetTestDTO response = testSnippetService.convertToGetDTO(created);
             return ResponseEntity.ok(response);
+        } catch (RuntimeException a) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
@@ -50,6 +52,8 @@ public class SnippetTestingController {
             TestSnippets updated = testSnippetService.updateTest(dto, jwt);
             GetTestDTO response = testSnippetService.convertToGetDTO(updated);
             return ResponseEntity.ok(response);
+        } catch (SecurityException a) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
