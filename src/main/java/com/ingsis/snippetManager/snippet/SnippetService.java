@@ -15,12 +15,12 @@ import com.ingsis.snippetManager.intermediate.test.TestingService;
 import com.ingsis.snippetManager.redis.dto.status.SnippetStatus;
 import com.ingsis.snippetManager.snippet.dto.DataDTO;
 import com.ingsis.snippetManager.snippet.dto.PaginatedSnippets;
+import com.ingsis.snippetManager.snippet.dto.SnippetListItemDTO;
 import com.ingsis.snippetManager.snippet.dto.filters.Order;
 import com.ingsis.snippetManager.snippet.dto.filters.Property;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.ShareDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetResponseDTO;
-import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetWithLintData;
 import com.ingsis.snippetManager.snippet.dto.testing.GetTestDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.TestDTO;
 import java.nio.charset.StandardCharsets;
@@ -147,68 +147,129 @@ public class SnippetService {
         return new SnippetResponseDTO(snippet, userId, content, "PENDING");
     }
 
-    public PaginatedSnippets getFilteredSnippets(SnippetFilterDTO filterDTO, int page, int pageSize, Jwt jwt) {
-        List<UUID> uuids = getAllUuids(getOwnerId(jwt), filterDTO != null ? filterDTO.property() : Property.BOTH,
-                getToken(jwt));
+    public PaginatedSnippets getFilteredSnippets(
+            SnippetFilterDTO filterDTO,
+            int page,
+            int pageSize,
+            Jwt jwt
+    ) {
+        List<UUID> uuids = getAllUuids(
+                getOwnerId(jwt),
+                filterDTO != null ? filterDTO.property() : Property.BOTH,
+                getToken(jwt)
+        );
+
         List<Snippet> snippets = repository.findAllById(uuids);
+
+        // -------------------------
+        // FILTROS
+        // -------------------------
         if (filterDTO != null) {
             if (filterDTO.name() != null && !filterDTO.name().isEmpty()) {
                 String nameFilter = filterDTO.name().toLowerCase();
                 snippets = snippets.stream()
-                        .filter(s -> s.getName() != null && s.getName().toLowerCase().contains(nameFilter)).toList();
+                        .filter(s -> s.getName() != null &&
+                                s.getName().toLowerCase().contains(nameFilter))
+                        .toList();
             }
+
             if (filterDTO.language() != null && !filterDTO.language().isEmpty()) {
                 String languageFilter = filterDTO.language().toLowerCase();
                 snippets = snippets.stream()
-                        .filter(s -> s.getLanguage() != null && s.getLanguage().equalsIgnoreCase(languageFilter))
+                        .filter(s -> s.getLanguage() != null &&
+                                s.getLanguage().equalsIgnoreCase(languageFilter))
                         .toList();
             }
         }
+
+        // -------------------------
+        // SORT
+        // -------------------------
         if (filterDTO != null && filterDTO.sortBy() != null) {
             Comparator<Snippet> comparator = switch (filterDTO.sortBy()) {
                 case LANGUAGE ->
-                    Comparator.comparing(Snippet::getLanguage, Comparator.nullsLast(String::compareToIgnoreCase));
-                case NAME -> Comparator.comparing(Snippet::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+                        Comparator.comparing(
+                                Snippet::getLanguage,
+                                Comparator.nullsLast(String::compareToIgnoreCase)
+                        );
+                case NAME ->
+                        Comparator.comparing(
+                                Snippet::getName,
+                                Comparator.nullsLast(String::compareToIgnoreCase)
+                        );
             };
+
             if (filterDTO.order() == Order.DESC) {
                 comparator = comparator.reversed();
             }
+
             snippets = snippets.stream().sorted(comparator).toList();
         }
-        boolean mustValidate = filterDTO != null && (filterDTO.compliance() != null);
-        List<SnippetWithLintData> withLint = new ArrayList<>();
+
+        boolean mustValidate = filterDTO != null && filterDTO.compliance() != null;
+
+        // -------------------------
+        // MAPEO A DTO (CLAVE)
+        // -------------------------
+        List<SnippetListItemDTO> result = new ArrayList<>();
+
         for (Snippet snippet : snippets) {
             SnippetStatus status = snippet.getLintStatus();
+
             if (mustValidate || status == null) {
                 ValidationResult vr = ruleService.validateSnippet(
-                        new SimpleRunSnippet(snippet.getId(),
-                                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), snippet.getVersion()),
-                        jwt);
+                        new SimpleRunSnippet(
+                                snippet.getId(),
+                                SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()),
+                                snippet.getVersion()
+                        ),
+                        jwt
+                );
                 status = vr.valid() ? SnippetStatus.PASSED : SnippetStatus.FAILED;
             }
 
-            if (filterDTO != null && filterDTO.compliance() != null
-                    && !SnippetStatus.valueOf(filterDTO.compliance()).equals(status)) {
+            if (filterDTO != null &&
+                    filterDTO.compliance() != null &&
+                    !SnippetStatus.valueOf(filterDTO.compliance()).equals(status)) {
                 continue;
             }
 
-            withLint.add(new SnippetWithLintData(snippet, status, findUserBySnippetId(snippet.getId(), jwt)));
+            result.add(new SnippetListItemDTO(
+                    snippet.getId(),
+                    snippet.getName(),
+                    snippet.getLanguage(),
+                    snippet.getVersion(),
+                    findUserBySnippetId(snippet.getId(), jwt),
+                    status
+            ));
         }
+
+        // -------------------------
+        // SORT FINAL (por status)
+        // -------------------------
         if (filterDTO != null) {
-            Comparator<SnippetWithLintData> cmp = Comparator.comparing(s -> s.valid().name());
+            Comparator<SnippetListItemDTO> cmp =
+                    Comparator.comparing(s -> s.status().name());
 
             if (filterDTO.order() == Order.DESC) {
                 cmp = cmp.reversed();
             }
-            withLint = withLint.stream().sorted(cmp).toList();
+
+            result = result.stream().sorted(cmp).toList();
         }
-        int total = withLint.size();
+
+        // -------------------------
+        // PAGINACIÓN
+        // -------------------------
+        int total = result.size();
         int from = Math.max(0, page * pageSize);
         int to = Math.min(from + pageSize, total);
-        List<SnippetWithLintData> slice = from < total ? withLint.subList(from, to) : List.of();
+
+        List<SnippetListItemDTO> slice =
+                from < total ? result.subList(from, to) : List.of();
+
         return new PaginatedSnippets(page, pageSize, total, slice);
     }
-
     public String downloadSnippetContent(UUID snippetId) {
         try {
             ResponseEntity<String> response = assetService.getSnippet(repository.findById(snippetId)
