@@ -148,7 +148,12 @@ public class SnippetController {
     public ResponseEntity<byte[]> downloadSnippet(@PathVariable UUID snippetId,
             @RequestParam(defaultValue = "original") String version, @AuthenticationPrincipal Jwt jwt) {
         try {
-            return ResponseEntity.ok(snippetService.download(jwt, version, snippetId));
+            byte[] content = snippetService.download(jwt, version, snippetId);
+
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"snippet-" + snippetId + ".txt\"")
+                    .header("Content-Type", "text/plain").body(content);
+
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (Exception e) {

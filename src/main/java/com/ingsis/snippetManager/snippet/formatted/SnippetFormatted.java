@@ -1,4 +1,4 @@
-package com.ingsis.snippetManager.intermediate.rules.model.formatted;
+package com.ingsis.snippetManager.snippet.formatted;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

@@ -23,6 +23,8 @@ import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetFilterDTO;
 import com.ingsis.snippetManager.snippet.dto.snippetDTO.SnippetResponseDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.GetTestDTO;
 import com.ingsis.snippetManager.snippet.dto.testing.TestDTO;
+import com.ingsis.snippetManager.snippet.formatted.SnippetFormatted;
+import com.ingsis.snippetManager.snippet.formatted.SnippetFormattedInterface;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -51,11 +53,13 @@ public class SnippetService {
     private final TestingService testingService;
     private final AuthenticationService authenticationService;
     private final EngineService engineService;
+    private final SnippetFormattedInterface snippetFormattedInterface;
     private static final Logger logger = LoggerFactory.getLogger(SnippetService.class);
 
     public SnippetService(SnippetRepo repository, AssetService assetService, RuleService ruleService,
             UserPermissionService userPermissionService, TestingService testingService,
-            AuthenticationService authenticationService, EngineService engineService) {
+            AuthenticationService authenticationService, EngineService engineService,
+            SnippetFormattedInterface snippetFormattedInterface) {
         this.repository = repository;
         this.assetService = assetService;
         this.ruleService = ruleService;
@@ -63,6 +67,7 @@ public class SnippetService {
         this.testingService = testingService;
         this.authenticationService = authenticationService;
         this.engineService = engineService;
+        this.snippetFormattedInterface = snippetFormattedInterface;
     }
 
     private String getToken(Jwt token) {
@@ -233,6 +238,7 @@ public class SnippetService {
         try {
             ResponseEntity<String> response = assetService.getSnippet(repository.findById(snippetId)
                     .orElseThrow(() -> new RuntimeException("Snippet not found")).getId());
+            logger.info("{}", snippetId);
             return response.getBody() != null ? response.getBody() : "";
         } catch (Exception e) {
             logger.error("Error downloading snippet content for {}: {}", snippetId, e.getMessage(), e);
@@ -242,24 +248,30 @@ public class SnippetService {
 
     public String downloadFormattedSnippetContent(UUID snippetId) {
         try {
-            ResponseEntity<String> response = assetService.getFormattedSnippet(repository.findById(snippetId)
-                    .orElseThrow(() -> new RuntimeException("Snippet not found")).getId());
+            SnippetFormatted mapping = snippetFormattedInterface.findByOriginalSnippetId(snippetId)
+                    .orElseThrow(() -> new NoSuchElementException("Not formatted yet"));
+
+            UUID formatId = mapping.getFormattedSnippetId();
+
+            ResponseEntity<String> response = assetService.getSnippet(formatId);
+
             return response.getBody() != null ? response.getBody() : "";
+
         } catch (Exception e) {
-            logger.error("Error downloading snippet content for {}: {}", snippetId, e.getMessage(), e);
+            logger.error("Error downloading formatted snippet for {}: {}", snippetId, e.getMessage(), e);
             throw new NoSuchElementException(e);
         }
     }
 
     public byte[] download(Jwt jwt, String version, UUID snippetId) {
         if (!validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))
-                || !validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.READ, getToken(jwt))) {
-            throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
+                && !validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.READ, getToken(jwt))) {
+            throw new RuntimeException("Snippet validation failed");
         }
         String content;
-        if (version.equals("original")) {
+        if ("original".equals(version)) {
             content = downloadSnippetContent(snippetId);
-        } else if (version.equals("formatted")) {
+        } else if ("formatted".equals(version)) {
             content = downloadFormattedSnippetContent(snippetId);
         } else {
             throw new RuntimeException("Unsupported version");

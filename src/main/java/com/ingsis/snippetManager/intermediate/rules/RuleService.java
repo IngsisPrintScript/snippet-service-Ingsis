@@ -1,5 +1,6 @@
 package com.ingsis.snippetManager.intermediate.rules;
 
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.intermediate.engine.EngineService;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.FormatRequestDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.LintRequestDTO;
@@ -14,9 +15,7 @@ import com.ingsis.snippetManager.intermediate.rules.model.Rule;
 import com.ingsis.snippetManager.intermediate.rules.model.RuleType;
 import com.ingsis.snippetManager.intermediate.rules.model.UserRule;
 import com.ingsis.snippetManager.intermediate.rules.model.dto.UpdateRuleDTO;
-import com.ingsis.snippetManager.intermediate.rules.model.formatted.SnippetFormatted;
 import com.ingsis.snippetManager.intermediate.rules.repositories.RuleRepository;
-import com.ingsis.snippetManager.intermediate.rules.repositories.SnippetFormattedInterface;
 import com.ingsis.snippetManager.intermediate.rules.repositories.UserRuleRepository;
 import com.ingsis.snippetManager.redis.dto.request.FormatRequestEvent;
 import com.ingsis.snippetManager.redis.dto.request.LintRequestEvent;
@@ -26,6 +25,8 @@ import com.ingsis.snippetManager.redis.requestProducer.LintRequestProducer;
 import com.ingsis.snippetManager.snippet.Snippet;
 import com.ingsis.snippetManager.snippet.SnippetRepo;
 import com.ingsis.snippetManager.snippet.dto.Converter;
+import com.ingsis.snippetManager.snippet.formatted.SnippetFormatted;
+import com.ingsis.snippetManager.snippet.formatted.SnippetFormattedInterface;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,11 +50,12 @@ public class RuleService {
     private final SnippetRepo snippetRepo;
     private final SnippetFormattedInterface snippetFormattedInterface;
     private final UserPermissionService userPermissionService;
+    private final AssetService assetService;
 
     public RuleService(RuleRepository ruleRepository, UserRuleRepository userRuleRepository,
             LintRequestProducer lintRequestProducer, FormatRequestProducer formatRequestProducer, Converter converter,
             EngineService engineService, SnippetRepo snippetRepo, UserPermissionService userPermissionService,
-            SnippetFormattedInterface snippetFormattedInterface) {
+            SnippetFormattedInterface snippetFormattedInterface, AssetService assetService) {
         this.ruleRepository = ruleRepository;
         this.userRuleRepository = userRuleRepository;
         this.lintRequestProducer = lintRequestProducer;
@@ -63,6 +65,7 @@ public class RuleService {
         this.snippetRepo = snippetRepo;
         this.userPermissionService = userPermissionService;
         this.snippetFormattedInterface = snippetFormattedInterface;
+        this.assetService = assetService;
     }
 
     private String getToken(Jwt token) {
@@ -218,15 +221,17 @@ public class RuleService {
 
         FormatterSupportedRules formatterRules = converter.convertToFormatterRules(rules);
 
-        UUID formatId = snippetFormattedInterface.findById(snippetId).map(SnippetFormatted::getFormattedSnippetId)
-                .orElse(UUID.randomUUID());
+        UUID formatId = snippetFormattedInterface.findByOriginalSnippetId(snippetId)
+                .map(SnippetFormatted::getFormattedSnippetId).orElse(UUID.randomUUID());
 
-        FormatRequestDTO dto = new FormatRequestDTO(snippet.getId(), formatId, snippet.getVersion(),
+        assetService.saveOriginalSnippet(snippetId, formatId);
+
+        FormatRequestDTO dto = new FormatRequestDTO(snippetId, formatId, snippet.getVersion(),
                 SupportedLanguage.valueOf(snippet.getLanguage().toUpperCase()), formatterRules);
 
         ResponseEntity<UUID> response = engineService.format(dto, getToken(token));
 
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+        if (!response.getStatusCode().is2xxSuccessful()) {
             return SnippetStatus.FAILED;
         }
 
@@ -234,7 +239,6 @@ public class RuleService {
 
         return SnippetStatus.PASSED;
     }
-
     public ValidationResult validateSnippet(SimpleRunSnippet dto, Jwt token) {
         ResponseEntity<ValidationResult> result = engineService.validate(dto, getToken(token));
         if (!result.getStatusCode().is2xxSuccessful() || result.getBody() == null) {

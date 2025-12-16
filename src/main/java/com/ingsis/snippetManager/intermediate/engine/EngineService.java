@@ -1,5 +1,6 @@
 package com.ingsis.snippetManager.intermediate.engine;
 
+import com.ingsis.snippetManager.intermediate.azureStorageConfig.AssetService;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.FormatRequestDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.LintRequestDTO;
 import com.ingsis.snippetManager.intermediate.engine.dto.request.RunSnippetRequestDTO;
@@ -26,10 +27,12 @@ public class EngineService {
     private final Logger logger = LoggerFactory.getLogger(EngineService.class);
     private final String engineUrl;
     private final RestTemplate restTemplate;
+    private final AssetService assetService;
 
-    public EngineService(@Value("${engine.service.base-url}") String engine) {
+    public EngineService(@Value("${engine.service.base-url}") String engine, AssetService assetService) {
         this.engineUrl = engine;
         this.restTemplate = new RestTemplate();
+        this.assetService = assetService;
     }
 
     private <T, R> ResponseEntity<R> post(String path, T body, String token, Class<R> clazz) {
@@ -71,5 +74,15 @@ public class EngineService {
 
     public ResponseEntity<TestResponseDTO> test(TestRequestDTO dto, String token) {
         return post("/run/test", dto, token, TestResponseDTO.class);
+    }
+
+    private UUID saveSnippet(UUID snippetId, UUID formatId, String formattedContent) {
+        try {
+            assetService.saveOriginalSnippet(snippetId, formatId);
+            assetService.saveSnippet(snippetId, formattedContent);
+            return snippetId;
+        } catch (Exception e) {
+            return formatId;
+        }
     }
 }
