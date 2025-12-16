@@ -66,7 +66,7 @@ public class SnippetTestingController {
             List<GetTestDTO> getTest = testSnippetService.getTestsBySnippetId(snippetId, jwt);
             return ResponseEntity.ok(getTest);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.ok(List.of());
         }
     }
 
