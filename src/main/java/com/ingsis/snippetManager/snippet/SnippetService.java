@@ -207,7 +207,7 @@ public class SnippetService {
             }
 
             result.add(new SnippetListItemDTO(snippet.getId(), snippet.getName(), snippet.getLanguage(),
-                    snippet.getVersion(), findUserBySnippetId(snippet.getId(), jwt), status));
+                    snippet.getVersion(), findUserBySnippetId(snippet.getId(), jwt), status, assetService.getSnippet(snippet.getId()).getBody()));
         }
 
         if (filterDTO != null) {
