@@ -271,7 +271,7 @@ public class SnippetService {
             throw new NoSuchElementException(HttpStatus.FORBIDDEN.toString());
         }
         Snippet snippet = repository.findById(snippetId).orElseThrow(() -> new RuntimeException("Snippet not found"));
-        List<GetTestDTO> test = testingService.getTestsBySnippetId(snippetId, jwt);
+        List<GetTestDTO> test = testingService.getTestsBySnippetIds(snippetId, jwt);
         try {
             deleteSnippetUserAuthorization(jwt, snippetId);
             deleteTest(jwt, snippetId);

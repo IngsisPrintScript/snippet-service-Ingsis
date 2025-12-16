@@ -156,14 +156,21 @@ public class TestingService {
     public GetTestDTO convertToGetDTO(TestSnippets updated) {
         List<String> inputs = updated.getInputs().stream().map(TestCasesInput::getInputUrl).toList();
         List<String> outputs = updated.getExpectedOutputs().stream().map(TestCaseExpectedOutput::getOutput).toList();
-        Map<String, String> envs = updated.getEnvs().stream()
-                .collect(Collectors.toMap(TestCaseEnvs::getKey, TestCaseEnvs::getValue));
+        Map<String, String> envs = updated.getEnvs() == null
+                ? Map.of()
+                : updated.getEnvs().stream()
+                .collect(Collectors.toMap(
+                        TestCaseEnvs::getKey,
+                        TestCaseEnvs::getValue
+                ));
         return new GetTestDTO(updated.getId(), updated.getSnippetId(), updated.getName(), inputs, outputs, envs);
     }
 
     @Transactional
     public TestResponseDTO runTestCase(TestToRunDTO testToRunDTO, Jwt jwt) {
-        if (!validateSnippet(getOwnerId(jwt), testToRunDTO.snippetId(), AuthorizationActions.ALL, getToken(jwt))) {
+        if (!validateSnippet(getOwnerId(jwt), testToRunDTO.snippetId(), AuthorizationActions.ALL, getToken(jwt)) &&
+                !validateSnippet(getOwnerId(jwt), testToRunDTO.snippetId(), AuthorizationActions.READ, getToken(jwt))
+        ) {
             throw new RuntimeException("Snippet validation failed");
         }
         TestSnippets testCase = testRepo.findById(testToRunDTO.testCaseId())
@@ -211,8 +218,11 @@ public class TestingService {
         return updateTest(dto);
     }
 
-    public List<GetTestDTO> getTestsBySnippetId(UUID snippetId, Jwt jwt) {
-        if (!validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt))) {
+    public List<GetTestDTO> getTestsBySnippetIds(UUID snippetId, Jwt jwt) {
+        if (
+                !validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.ALL, getToken(jwt)) &&
+                        !validateSnippet(getOwnerId(jwt), snippetId, AuthorizationActions.READ, getToken(jwt))
+        ) {
             throw new RuntimeException("Snippet validation failed");
         }
         return getTestsBySnippetId(snippetId);

@@ -21,13 +21,13 @@ public class TestSnippets {
 
     private UUID snippetId;
 
-    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TestCasesInput> inputs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TestCaseExpectedOutput> expectedOutputs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "testSnippet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TestCaseEnvs> envs = new ArrayList<>();
 
     public TestSnippets() {

@@ -63,7 +63,7 @@ public class SnippetTestingController {
     public ResponseEntity<List<GetTestDTO>> getSnippetTests(@AuthenticationPrincipal Jwt jwt,
             @RequestParam UUID snippetId) {
         try {
-            List<GetTestDTO> getTest = testSnippetService.getTestsBySnippetId(snippetId, jwt);
+            List<GetTestDTO> getTest = testSnippetService.getTestsBySnippetIds(snippetId, jwt);
             return ResponseEntity.ok(getTest);
         } catch (Exception e) {
             return ResponseEntity.ok(List.of());
